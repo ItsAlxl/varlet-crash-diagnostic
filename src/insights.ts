@@ -160,8 +160,8 @@ const logInsights: LogInsight[] = [
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
 			if (callstack.luaStack?.includes("@scripts/managers/ui/ui_renderer.lua")) {
 				const uiInfo = findUiInfo(callstack.luaValues ?? "")
-				if (uiInfo.length > 0)
-					return "This looks like a UI-related crash. To help you identify the bugged mod, here's some information related to the part of the UI causing the problem:\n" + uiInfo.join("\n").trim()
+				if (uiInfo && uiInfo.length > 0)
+					return "This looks like a UI-related crash. To help you identify the bugged mod, here's some information possibly related to the part of the UI causing the problem:\n" + uiInfo.join("\n").trim()
 			}
 		}
 	),

@@ -51,7 +51,10 @@ export function findModsFromPaths(text: string) {
 }
 
 export function findUiInfo(text: string) {
-	return [...text.matchAll(rgxUiInfo)].map(match => match[1] + ": " + match[2]).filter(filterToUnique)
+	const uiInfo = [...text.matchAll(rgxUiInfo)]
+	// if only "name" was found, this probably isn't UI-related
+	if (uiInfo.find(match => match[1] !== "name"))
+		return uiInfo.map(match => match[1] + ": " + match[2]).filter(filterToUnique)
 }
 
 export function comparesMismatchedTypes(errorMessage: string) {
