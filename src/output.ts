@@ -37,11 +37,11 @@ function switchGuidVis(guid: string) {
 	refreshInsightVis()
 }
 
-function displayInsights(bucket: HTMLDivElement, insights: InsightResult[]) {
+function displayInsights(bucket: HTMLDivElement, insights: InsightResult[], emptySuffix = "") {
 	if (insights.length == 0) {
 		insights.push({
 			title: "No insights :(",
-			message: "Varlet Crash Diagnostic doesn't have any insights to offer about this crash. Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit."
+			message: "Varlet Crash Diagnostic doesn't have any insights to offer about this crash. " + emptySuffix
 		})
 	}
 	bucket.replaceChildren(...insights.map(result => {
@@ -70,7 +70,7 @@ function displayInsights(bucket: HTMLDivElement, insights: InsightResult[]) {
 export function showCrashInsights(p: ParsedCrashText | undefined) {
 	crashGuid = p?.guid ?? ""
 	if (p)
-		displayInsights(crashInsights, findCrashInsights(p))
+		displayInsights(crashInsights, findCrashInsights(p), "Specify the console log directory above to get more information.")
 	switchGuidVis(crashGuid)
 }
 
@@ -101,7 +101,7 @@ export function displayLog(file: File) {
 		localsDisplay.innerText = callstack.luaValues ?? ""
 
 		const insightResults = findLogInsights(callstack, loadOrder, logText)
-		displayInsights(logInsights, insightResults)
+		displayInsights(logInsights, insightResults, "Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit.")
 
 		reportText = `Varlet report generated from ${file.name}
 [Varlet insights]:
