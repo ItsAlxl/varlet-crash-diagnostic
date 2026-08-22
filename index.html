@@ -104,7 +104,7 @@
 					</div>
 				</div>
 				<div class="divider w-full m-0 divider-horizontal" data-loc-key="hint_or"></div>
-				<div class="card p-2 bg-base-100 rounded-box flex flex-col grow gap-3">
+				<div class="card p-2 bg-base-100 rounded-box flex flex-col grow gap-3" id="dropzone-logfile">
 					<div class="w-full text-center text-xl font-semibold" data-loc-key="input_file_title"></div>
 					<div class="flex flex-col grow justify-center align-center gap-2">
 						<div data-loc-key="input_file_desc"></div>
@@ -170,11 +170,13 @@
 			</div>
 			<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 				<input type="checkbox" />
-				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12" data-loc-key="report_text_title"></div>
+				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+					data-loc-key="report_text_title"></div>
 				<div class="collapse-content flex flex-col gap-2">
 					<div data-loc-key="report_text_desc"></div>
 					<div>
-						<button class="btn btn-primary btn-outline" id="copy-report-btn" data-loc-key="report_copy"></button>
+						<button class="btn btn-primary btn-outline" id="copy-report-btn"
+							data-loc-key="report_copy"></button>
 					</div>
 					<textarea readonly id="report-text" spellcheck="false"
 						class="textarea textarea-bordered w-full leading-snug grow h-30 bg-base-200"></textarea>

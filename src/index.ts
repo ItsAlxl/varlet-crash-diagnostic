@@ -1,6 +1,7 @@
 import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "./localize"
 import "./input_crash"
 import "./input_log"
+import "./dragndrop"
 import "./style.css"
 
 const languageMenu = document.getElementById("language-menu")

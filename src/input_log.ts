@@ -9,14 +9,28 @@ let logFile: File | undefined
 function updateSelectedLog() {
 	const files = selectFile.files
 	if (files && files.length > 0) {
-		logFile = files[0]
-		readSelectBtn.disabled = false
-		setElementTrKey(readSelectBtn, "input_file_parse")
-		displayLog(logFile)
+		applyLog(files[0])
 	} else {
 		setElementTrKey(readSelectBtn, "input_file_no_parse")
 		readSelectBtn.disabled = true
 	}
+}
+
+export function selectLog(log: File) {
+	if (logFile != log) {
+		const transfer = new DataTransfer()
+		transfer.items.add(log)
+		selectFile.files = transfer.files
+
+		applyLog(log)
+	}
+}
+
+function applyLog(log: File) {
+	logFile = log
+	readSelectBtn.disabled = false
+	setElementTrKey(readSelectBtn, "input_file_parse")
+	displayLog(logFile!)
 }
 
 selectFile.addEventListener("change", updateSelectedLog)
