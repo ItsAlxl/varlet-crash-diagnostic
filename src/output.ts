@@ -76,10 +76,14 @@ export function showCrashInsights(p: ParsedCrashText | undefined) {
 
 export function displayLog(file: File) {
 	logGuid = findGuid(file.name)
-	switchGuidVis(logGuid)
+	const guidFromFileName = logGuid.length > 0
 
 	fileLabel.innerText = file.name
 	file.text().then((logText) => {
+		if (!guidFromFileName)
+			logGuid = findGuid(logText)
+		switchGuidVis(logGuid)
+
 		const loadOrder = parseLoadOrder(logText)
 		loadOrderList.replaceChildren(...loadOrder.map((o) => {
 			const item = document.createElement("li")
@@ -103,7 +107,7 @@ export function displayLog(file: File) {
 		const insightResults = findLogInsights(callstack, loadOrder, logText)
 		displayInsights(logInsights, insightResults, "Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit.")
 
-		reportText = `Varlet report generated from ${file.name}
+		reportText = `Varlet report generated from ${file.name}${guidFromFileName ? "" : (" (session " + logGuid + ")")}
 [Varlet insights]:
 ${insightResults.map(result => "> " + result.title + "\n" + result.message).join("\n\n")}
 
