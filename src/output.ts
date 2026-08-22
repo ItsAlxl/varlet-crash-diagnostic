@@ -1,5 +1,8 @@
-import { findCrashInsights, findLogInsights, type InsightResult } from "./insights"
+import { findCrashInsights, findLogInsights, INSIGHT_NONE_FILE, INSIGHT_NONE_PASTE, type InsightResult } from "./insights"
+import { onLocaleChanged, trIntoElement, trReport, trText } from "./localize"
 import { findGuid, parseCallstack, parseLoadOrder, type ParsedCrashText } from "./parse"
+
+const navbar = document.getElementById("navbar") as HTMLDivElement
 
 const insightRoot = document.getElementById("output-insights") as HTMLDivElement
 const insightGuid = document.getElementById("insight-guid") as HTMLSpanElement
@@ -10,12 +13,15 @@ const logRoot = document.getElementById("output-log") as HTMLDivElement
 const fileLabel = document.getElementById("output-name") as HTMLDivElement
 const loadOrderList = document.getElementById("output-load-order") as HTMLOListElement
 const callstackDisplay = document.getElementById("output-callstack") as HTMLDivElement
-const localsDisplay = document.getElementById("output-luavals") as HTMLDivElement
+const localsDisplay = document.getElementById("output-lua-vals") as HTMLDivElement
 
 const reportRoot = document.getElementById("output-report") as HTMLDivElement
 const reportTextArea = document.getElementById("report-text") as HTMLDivElement
 const reportSaveLink = document.getElementById("save-report-btn") as HTMLAnchorElement
 const reportCopyBtn = document.getElementById("copy-report-btn") as HTMLButtonElement
+
+let lastInsightBucket: HTMLElement | undefined
+let lastInsights: InsightResult[] | undefined
 
 let crashGuid = ""
 let logGuid = ""
@@ -37,49 +43,69 @@ function switchGuidVis(guid: string) {
 	refreshInsightVis()
 }
 
-function displayInsights(bucket: HTMLDivElement, insights: InsightResult[], emptySuffix = "") {
+function scrollToInsights() {
+	window.scroll({
+		behavior: "smooth",
+		top: insightRoot.offsetTop - navbar.offsetHeight
+	})
+}
+
+function displayInsights(bucket: HTMLDivElement, insights: InsightResult[], fromLogFile: boolean) {
 	if (insights.length == 0) {
-		insights.push({
-			title: "No insights :(",
-			message: "Varlet Crash Diagnostic doesn't have any insights to offer about this crash. " + emptySuffix
-		})
+		insights.push(fromLogFile ? INSIGHT_NONE_FILE : INSIGHT_NONE_PASTE)
 	}
-	bucket.replaceChildren(...insights.map(result => {
-		const collapse = document.createElement("div")
-		collapse.classList.add("collapse", "collapse-arrow", "bg-base-200", "border-neutral", "border")
 
-		const checkbox = document.createElement("input")
-		checkbox.type = "checkbox"
+	lastInsightBucket = bucket
+	lastInsights = insights
+	refreshInsights()
 
-		const title = document.createElement("div")
-		title.classList.add("collapse-title", "font-semibold", "after:start-5", "after:end-auto", "pe-4", "ps-12")
-		title.innerText = result.title
+	setTimeout(scrollToInsights, 0) // timeout to wait for DOM changes
+}
 
-		const message = document.createElement("div")
-		message.classList.add("collapse-content")
-		message.innerText = result.message
+function refreshInsights() {
+	if (lastInsightBucket && lastInsights) {
+		lastInsightBucket.replaceChildren(...lastInsights.map(result => {
+			const collapse = document.createElement("div")
+			collapse.classList.add("collapse", "collapse-arrow", "bg-base-200", "border-neutral", "border")
 
-		collapse.appendChild(checkbox)
-		collapse.appendChild(title)
-		collapse.appendChild(message)
+			const checkbox = document.createElement("input")
+			checkbox.type = "checkbox"
 
-		return collapse
-	}))
+			const title = document.createElement("div")
+			title.classList.add("collapse-title", "font-semibold", "after:start-5", "after:end-auto", "pe-4", "ps-12")
+			trIntoElement(title, result.title)
+
+			const message = document.createElement("div")
+			message.classList.add("collapse-content")
+			trIntoElement(message, result.desc, result.context)
+
+			collapse.appendChild(checkbox)
+			collapse.appendChild(title)
+			collapse.appendChild(message)
+
+			return collapse
+		}))
+	}
 }
 
 export function showCrashInsights(p: ParsedCrashText | undefined) {
 	crashGuid = p?.guid ?? ""
 	if (p)
-		displayInsights(crashInsights, findCrashInsights(p), "Specify the console log directory above to get more information.")
+		displayInsights(crashInsights, findCrashInsights(p), false)
 	switchGuidVis(crashGuid)
 }
 
 export function displayLog(file: File) {
 	logGuid = findGuid(file.name)
-	switchGuidVis(logGuid)
+	const guidFromFileName = logGuid.length > 0
+	switchGuidVis("")
 
 	fileLabel.innerText = file.name
 	file.text().then((logText) => {
+		if (!guidFromFileName)
+			logGuid = findGuid(logText)
+		switchGuidVis(logGuid)
+
 		const loadOrder = parseLoadOrder(logText)
 		loadOrderList.replaceChildren(...loadOrder.map((o) => {
 			const item = document.createElement("li")
@@ -101,11 +127,11 @@ export function displayLog(file: File) {
 		localsDisplay.innerText = callstack.luaValues ?? ""
 
 		const insightResults = findLogInsights(callstack, loadOrder, logText)
-		displayInsights(logInsights, insightResults, "Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit.")
+		displayInsights(logInsights, insightResults, true)
 
-		reportText = `Varlet report generated from ${file.name}
+		reportText = `Varlet report generated from ${file.name}${guidFromFileName ? "" : (" (session " + logGuid + ")")}
 [Varlet insights]:
-${insightResults.map(result => "> " + result.title + "\n" + result.message).join("\n\n")}
+${insightResults.map(result => "> " + trReport(result.title) + "\n" + trReport(result.desc, result.context)).join("\n\n")}
 
 -----
 ${callstackText}
@@ -126,6 +152,8 @@ ${loadOrder.join("\n")}`.trim()
 		reportSaveLink.download = file.name.replace("console-", "varlet-").replace(".log", ".txt")
 	})
 }
+
+onLocaleChanged(refreshInsights)
 
 reportCopyBtn.addEventListener("click", function () {
 	navigator.clipboard.writeText(reportText)

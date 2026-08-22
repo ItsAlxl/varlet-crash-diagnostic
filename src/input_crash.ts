@@ -1,5 +1,6 @@
 import { findGuid, parseCrashText } from "./parse"
 import { displayLog, showCrashInsights } from "./output"
+import { setElementTrKey } from "./localize"
 
 const crashPasteText = document.getElementById("crashpaste-text") as HTMLTextAreaElement
 const logsFolder = document.getElementById("crash-folder") as HTMLInputElement
@@ -22,12 +23,12 @@ function findCrashLog() {
 			if (findGuid(file.name) === crashGuid) {
 				crashFile = file
 				readCrashBtn.disabled = false
-				readCrashBtn.innerText = "Parse crash log"
+				setElementTrKey(readCrashBtn, "input_paste_parse")
 				return
 			}
 		}
 	}
-	readCrashBtn.innerText = "No matching console log found"
+	setElementTrKey(readCrashBtn, "input_paste_no_parse")
 	readCrashBtn.disabled = true
 }
 
