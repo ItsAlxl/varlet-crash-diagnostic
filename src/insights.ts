@@ -59,7 +59,7 @@ function filterOutDmf(value: string) {
 
 function insightDXGI(message: string) {
 	if (message.includes("DXGI_ERROR_DEVICE_REMOVED"))
-		return "This is a GPU crash, which is a problem with the base game. Potential fixes can be found here: https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide"
+		return "This is a GPU crash, which is a problem with the base game. Some people have reported success in rolling back to older drivers. Other potential fixes can be found here: https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide"
 }
 
 function insightOOM(message: string) {
