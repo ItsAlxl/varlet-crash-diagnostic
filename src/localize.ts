@@ -21,8 +21,26 @@ const fallbackLocaleKey = "en"
 let localeKey = ""
 let onChangeCbs: (() => void)[] = []
 
-if (localeKey.length == 0)
-	setLocale("en")
+function getStartingLocale() {
+	const languages = navigator.languages
+	for (const lang of languages) {
+		if (L10N.hasOwnProperty(lang))
+			return lang
+	}
+
+	for (const lang of languages) {
+		const langSubtag = lang.split("-")[0]
+		const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
+		if (matched)
+			return matched
+	}
+
+	return "en"
+}
+
+if (localeKey.length == 0) {
+	setLocale(getStartingLocale())
+}
 
 export function onLocaleChanged(cb: () => void) {
 	onChangeCbs.push(cb)
