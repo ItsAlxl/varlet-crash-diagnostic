@@ -15,126 +15,106 @@
 </head>
 
 <body class="min-h-full bg-base-300">
+	<div id="navbar" class="navbar bg-base-300 border-b-2 border-white/5 sticky top-0 z-100 px-4">
+		<div class="flex-1">
+			<div class="text-2xl font-bold" data-loc-key="varlet_tool_title"></div>
+		</div>
+		<div class="flex-none flex flex-row gap-2">
+			<a class="btn btn-ghost btn-square" href="https://ko-fi.com/itsalxl" title="Gimme Your Money">
+				<span class="iconify-[tabler--tip-jar]"></span>
+			</a>
+			<a class="btn btn-ghost btn-square" href="https://github.com/ItsAlxl/varlet-crash-diagnostic"
+				title="Source Code">
+				<span class="iconify-[tabler--code]"></span>
+			</a>
+			<div id="language-menu">
+				<button popovertarget="language-change" style="anchor-name:--language-change"
+					class="btn btn-ghost btn-square gap-1 px-1.5 font-bold" aria-label="Language"
+					title="Change Language">
+					<span class="iconify-[tabler--language]"></span>
+					<svg class="mt-px hidden size-2 fill-current opacity-60 sm:inline-block"
+						xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048">
+						<path d="M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z">
+						</path>
+					</svg>
+				</button>
+				<div popover="" id="language-change" style="position-anchor:--language-change"
+					class="dropdown dropdown-end bg-base-200 max-h-100 overflow-y-auto border-3 border-white/5 shadow-2xl outline-3 outline-black/5">
+					<ul id="language-list" class="menu w-full"></ul>
+				</div>
+			</div>
+		</div>
+	</div>
 	<div class="h-full flex flex-col p-5 gap-5">
-		<div class="text-center text-2xl font-bold">Varlet Crash Diagnostic</div>
 		<div class="flex flex-col">
 			<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 				<input type="checkbox" />
-				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-					What is Varlet Crash Diagnostic?
+				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+					data-loc-key="faq_about_title">
+				</div>
+				<div class="collapse-content flex flex-col gap-2" data-loc-key="faq_about_desc"></div>
+			</div>
+			<div class="collapse collapse-arrow bg-base-200 border-neutral border">
+				<input type="checkbox" />
+				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+					data-loc-key="faq_log_location_title">
 				</div>
 				<div class="collapse-content flex flex-col gap-2">
-					<div>
-						Varlet Crash Diagnostic is an
-						<a class="link" href="https://github.com/ItsAlxl/varlet-crash-diagnostic">open-source</a>
-						tool made by
-						<a class="link" href="https://itsalxl.com">alxl</a>
-						to help users find the most relevant information for what caused Darktide to crash.
+					<div data-loc-key="faq_log_location_desc"></div>
+					<div class="flex flex-col font-semibold">
+						<div data-loc-key="faq_log_location_steam_title"></div>
+						<div data-loc-key="faq_log_location_steam_path" class="font-mono font-normal"></div>
 					</div>
-					<div>
-						By grabbing only the relevant information from your console logs, you will be able to help
-						yourself more easily when you run into issues. If you seek help from other people, you can save
-						them some time by giving them only the information they'd go looking for in the console log
-						anyway.
+					<div class="flex flex-col font-semibold">
+						<div data-loc-key="faq_log_location_xbox_title"></div>
+						<div data-loc-key="faq_log_location_xbox_path" class="font-mono font-normal"></div>
 					</div>
-					<div>
-						Feel free to
-						<a class="link" href="https://ko-fi.com/itsalxl">gimme your money</a>
-						if you feel so inclined :&rpar;
+					<div class="flex flex-col font-semibold">
+						<div data-loc-key="faq_log_location_proton_title"></div>
+						<div data-loc-key="faq_log_location_proton_path" class="font-mono font-normal"></div>
 					</div>
 				</div>
 			</div>
 			<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 				<input type="checkbox" />
-				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-					Where are console logs located?
+				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+					data-loc-key="faq_upload_title">
 				</div>
-				<div class="collapse-content flex flex-col gap-2">
-					<div>
-						The directory that contains your console logs is different per platform.
-					</div>
-					<div class="flex flex-col font-semibold">
-						Steam (Windows):
-						<span class="font-mono font-normal">
-							%AppData%/Fatshark/Darktide/console_logs/
-						</span>
-					</div>
-					<div class="flex flex-col font-semibold">
-						Xbox / Microsoft Store:
-						<span class="font-mono font-normal">
-							%AppData%/Fatshark/MicrosoftStore/Darktide/console_logs/
-						</span>
-					</div>
-					<div class="flex flex-col font-semibold">
-						Steam (Linux):
-						<span class="font-mono font-normal">
-							&lt;SteamLibrary&gt;/steamapps/compatdata/1361210/pfx/drive_c/users/steamuser/AppData/Roaming/Fatshark/Darktide/console_logs/
-						</span>
-					</div>
-				</div>
-			</div>
-			<div class="collapse collapse-arrow bg-base-200 border-neutral border">
-				<input type="checkbox" />
-				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-					My browser is warning me against uploading files. Is this safe?
-				</div>
-				<div class="collapse-content flex flex-col gap-2">
-					<div>
-						Rest assured that this tool does not actually upload any files; all of the processing is done
-						entirely on your own machine, and it never sends any information of any kind to any server.
-					</div>
-					<div>
-						You don't have to take my word for it! Here's the
-						<a class="link" href="https://github.com/ItsAlxl/varlet-crash-diagnostic">source code</a>.
-						You can run it locally, if you like.
-					</div>
-				</div>
+				<div class="collapse-content flex flex-col gap-2" data-loc-key="faq_upload_desc"></div>
 			</div>
 		</div>
 
 		<div class="flex flex-col">
 			<div class="grid grow grid-cols-[1fr_75px_1fr]">
 				<div class="card p-2 bg-base-100 rounded-box flex flex-col grow gap-3">
-					<div class="w-full text-center text-xl font-semibold">Paste Crash Message</div>
+					<div class="w-full text-center text-xl font-semibold" data-loc-key="input_paste_title"></div>
 					<div class="flex flex-col grow justify-center align-center gap-2">
 						<textarea id="crashpaste-text"
 							class="textarea textarea-bordered w-full leading-snug grow h-30 bg-base-200"
-							spellcheck="false">paste here</textarea>
-						<div id="crash-culprit" class="text-warning"></div>
-						<div>
-							The crash message usually isn't enough to diagnose an issue. Console logs are far more
-							informative. Specify the console log directory; see above for how to find it.
-						</div>
+							spellcheck="false"></textarea>
+						<div data-loc-key="input_paste_desc"></div>
 						<fieldset class="fieldset w-full">
 							<input type="file" class="file-input" id="crash-folder" webkitdirectory directory
 								multiple />
-							<label class="label">Note: no files are actually uploaded.</label>
+							<label class="label" data-loc-key="hint_no_uploads"></label>
 						</fieldset>
 					</div>
 					<div class="flex justify-center">
-						<button class="btn btn-primary btn-outline" id="parse-crash-btn" disabled>
-							Parse Crash Log
-						</button>
+						<button class="btn btn-primary btn-outline" id="parse-crash-btn" disabled></button>
 					</div>
 				</div>
-				<div class="divider w-full m-0 divider-horizontal">OR</div>
+				<div class="divider w-full m-0 divider-horizontal" data-loc-key="hint_or"></div>
 				<div class="card p-2 bg-base-100 rounded-box flex flex-col grow gap-3">
-					<div class="w-full text-center text-xl font-semibold">Provide Specific Console Log</div>
+					<div class="w-full text-center text-xl font-semibold" data-loc-key="input_file_title"></div>
 					<div class="flex flex-col grow justify-center align-center gap-2">
-						<div>
-							Make sure the console log you select is the log created during the session that ended in a
-							crash. A new console log is created every time the game is launched, not when it crashes or
-							closes. See above for console log location.
-						</div>
+						<div data-loc-key="input_file_desc"></div>
 						<fieldset class="fieldset w-full">
 							<input type="file" class="file-input" id="select-log" accept=".log,.txt" />
-							<label class="label">Note: no files are actually uploaded.</label>
+							<label class="label" data-loc-key="hint_no_uploads"></label>
 						</fieldset>
 					</div>
 					<div class="flex justify-center">
-						<button class="btn btn-primary btn-outline" id="parse-select-btn" disabled>
-							Parse Selected Log
-						</button>
+						<button class="btn btn-primary btn-outline" id="parse-select-btn" disabled></button>
 					</div>
 				</div>
 			</div>
@@ -142,7 +122,7 @@
 
 		<div class="flex flex-col gap-2 hidden" id="output-insights">
 			<div class="flex flex-col">
-				<div class="w-full text-center text-xl font-bold">Insights</div>
+				<div class="w-full text-center text-xl font-bold" data-loc-key="readout_insights"></div>
 				<span class="text-center text-sm" id="insight-guid"></span>
 			</div>
 			<div class="flex flex-col" id="crash-insights"></div>
@@ -150,13 +130,12 @@
 		</div>
 
 		<div class="flex flex-col gap-2 hidden" id="output-log">
-			<div class="w-full text-center text-xl font-bold" id="output-name">Log Name</div>
+			<div class="w-full text-center text-xl font-bold" id="output-name"></div>
 			<div class="flex flex-col">
 				<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 					<input type="checkbox" />
-					<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-						Callstack
-					</div>
+					<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+						data-loc-key="readout_callstack"></div>
 					<div class="collapse-content flex flex-col gap-2">
 						<div id="output-callstack">
 						</div>
@@ -164,19 +143,17 @@
 				</div>
 				<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 					<input type="checkbox" />
-					<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-						Lua Values
-					</div>
+					<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+						data-loc-key="readout_lua_vals"></div>
 					<div class="collapse-content flex flex-col gap-2">
-						<div id="output-luavals">
+						<div id="output-lua-vals">
 						</div>
 					</div>
 				</div>
 				<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 					<input type="checkbox" />
-					<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-						Actual Load Order
-					</div>
+					<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12"
+						data-loc-key="readout_load_order"></div>
 					<div class="collapse-content flex flex-col gap-2">
 						<ol class="list-decimal pl-8" id="output-load-order">
 						</ol>
@@ -186,29 +163,18 @@
 		</div>
 
 		<div class="flex flex-col gap-2 hidden" id="output-report">
-			<div class="w-full text-center text-xl font-bold">Shareable Report</div>
-			<div class="flex flex-col gap-2 text-center">
-				If you are seeking help from others, use the options below to send this report to them.
-			</div>
+			<div class="w-full text-center text-xl font-bold" data-loc-key="report_title"></div>
+			<div class="flex flex-col gap-2 text-center" data-loc-key="report_desc"></div>
 			<div class="flex flex-row gap-3 justify-center">
-				<a class="btn btn-accent btn-outline" id="save-report-btn">
-					Save Report File
-				</a>
+				<a class="btn btn-accent btn-outline" id="save-report-btn" data-loc-key="report_save"></a>
 			</div>
 			<div class="collapse collapse-arrow bg-base-200 border-neutral border">
 				<input type="checkbox" />
-				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12">
-					Report Text
-				</div>
+				<div class="collapse-title font-semibold after:start-5 after:end-auto pe-4 ps-12" data-loc-key="report_text_title"></div>
 				<div class="collapse-content flex flex-col gap-2">
+					<div data-loc-key="report_text_desc"></div>
 					<div>
-						As the report is obnoxiously long, you should try to send it as a file if you can. Only send the
-						text on its own if sharing the file is not possible.
-					</div>
-					<div>
-						<button class="btn btn-primary btn-outline" id="copy-report-btn">
-							Copy Text
-						</button>
+						<button class="btn btn-primary btn-outline" id="copy-report-btn" data-loc-key="report_copy"></button>
 					</div>
 					<textarea readonly id="report-text" spellcheck="false"
 						class="textarea textarea-bordered w-full leading-snug grow h-30 bg-base-200"></textarea>

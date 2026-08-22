@@ -104,7 +104,6 @@ export function parseHookChains(luaStack: string, logText: string) {
 					mods: [hookMod],
 					idx: chainIdx
 				})
-				console.log(squishedScript, "?", hookTarget, "=", stringSimilarity(squishedScript, hookTarget))
 			}
 		}
 	}

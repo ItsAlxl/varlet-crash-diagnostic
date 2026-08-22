@@ -1,3 +1,4 @@
+import { setElementTrKey } from "./localize"
 import { displayLog } from "./output"
 
 const selectFile = document.getElementById("select-log") as HTMLInputElement
@@ -10,10 +11,10 @@ function updateSelectedLog() {
 	if (files && files.length > 0) {
 		logFile = files[0]
 		readSelectBtn.disabled = false
-		readSelectBtn.innerText = "Parse selected log"
+		setElementTrKey(readSelectBtn, "input_file_parse")
 		displayLog(logFile)
 	} else {
-		readSelectBtn.innerText = "No log selected"
+		setElementTrKey(readSelectBtn, "input_file_no_parse")
 		readSelectBtn.disabled = true
 	}
 }
