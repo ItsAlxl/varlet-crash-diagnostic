@@ -37,6 +37,14 @@ function switchGuidVis(guid: string) {
 	refreshInsightVis()
 }
 
+function scrollToInsights() {
+	insightRoot.scrollIntoView({
+		behavior: "smooth",
+		block: "start",
+		inline: "nearest",
+	})
+}
+
 function displayInsights(bucket: HTMLDivElement, insights: InsightResult[], emptySuffix = "") {
 	if (insights.length == 0) {
 		insights.push({
@@ -65,6 +73,8 @@ function displayInsights(bucket: HTMLDivElement, insights: InsightResult[], empt
 
 		return collapse
 	}))
+
+	setTimeout(scrollToInsights, 0) // timeout to wait for DOM changes
 }
 
 export function showCrashInsights(p: ParsedCrashText | undefined) {
@@ -77,6 +87,7 @@ export function showCrashInsights(p: ParsedCrashText | undefined) {
 export function displayLog(file: File) {
 	logGuid = findGuid(file.name)
 	const guidFromFileName = logGuid.length > 0
+	switchGuidVis("")
 
 	fileLabel.innerText = file.name
 	file.text().then((logText) => {
