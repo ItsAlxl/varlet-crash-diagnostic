@@ -2,6 +2,7 @@ import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
 const rgxCrashMessage = /-\s*\[([^\]]+)]: ([^-]+)\s*-/
+const rgxModLoadingStart = /\[Lua\] \[Mod\] Loading [^\n]+mod_load_order.txt/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
@@ -53,7 +54,7 @@ export function findModsFromPaths(text: string) {
 export function findUiInfo(text: string) {
 	const uiInfo = [...text.matchAll(rgxUiInfo)]
 	// if only "name" was found, this probably isn't UI-related
-	if (uiInfo.find(match => match[1] !== "name"))
+	if (uiInfo.some(match => match[1] !== "name"))
 		return uiInfo.map(match => match[1] + ": " + match[2]).filter(filterToUnique)
 }
 
@@ -94,7 +95,8 @@ export function parseHookChains(luaStack: string, logText: string) {
 			const hookTarget = h[3]
 			const c = chains.get(hookTarget)
 			if (c) {
-				c.mods.push(hookMod)
+				if (!c.mods.includes(hookMod))
+					c.mods.push(hookMod)
 			} else {
 				const squishedScript = stackChains[chainIdx][0].replaceAll("_", "")
 				chains.set(hookTarget, {
@@ -125,14 +127,20 @@ export function parseCrashText(text: string) {
 }
 
 export function parseLoadOrder(logText: string) {
+	// if there were reloads, we only care about the most recent
+	const starts = [...logText.matchAll(rgxModLoadingStart)]
+	const startAt = starts[starts.length - 1].index
+
 	const matches = logText.matchAll(rgxModLoaded)
 	const loadOrder: string[] = []
 	let first = true
 	for (const m of matches) {
-		const modName = m[1]
-		if (!(first && modName === "DMF"))
-			loadOrder.push(modName)
-		first = false
+		if (m.index > startAt) {
+			const modName = m[1]
+			if (!(first && modName === "DMF"))
+				loadOrder.push(modName)
+			first = false
+		}
 	}
 	return loadOrder
 }

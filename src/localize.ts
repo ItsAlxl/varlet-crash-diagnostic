@@ -51,9 +51,11 @@ export function setLocale(loc: string) {
 	localeKey = L10N.hasOwnProperty(loc) ? loc : fallbackLocaleKey
 
 	if (previousLocale !== localeKey) {
-		const locable = document.querySelectorAll("[data-loc-key]") as NodeListOf<HTMLElement>
-		for (const elm of locable) {
+		for (const elm of document.querySelectorAll("[data-loc-key]") as NodeListOf<HTMLElement>) {
 			trIntoElement(elm)
+		}
+		for (const elm of document.querySelectorAll("[data-loc-tip]") as NodeListOf<HTMLElement>) {
+			elm.title = trText(elm.dataset.locTip!)
 		}
 
 		for (const cb of onChangeCbs) {
