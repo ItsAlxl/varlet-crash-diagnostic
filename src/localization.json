@@ -47,6 +47,8 @@
 		"insight_crash_message_desc_input": "{{modName}} is named in the crash message; however, this error may be caused by a mod that affects inputs earlier in the load order.",
 		"insight_dmf_loaded_twice_title": "Do not include DMF in your load order file",
 		"insight_dmf_loaded_twice_desc": "Do not include DMF in your load order file. It gets loaded by DML automatically.",
+		"insight_duplicate_mods_title": "Duplicate mods in load order",
+		"insight_duplicate_mods_desc": "The following mod(s) are listed more than once in your load order: {{dupes}}",
 		"insight_no_crash_title": "Not a crash",
 		"insight_no_crash_desc": "This log does not appear to contain a crash. A new console log is created every time the game launches, not when it closes or crashes.",
 		"insight_ui_info_title": "UI-related information from Lua locals",

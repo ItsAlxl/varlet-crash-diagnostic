@@ -143,6 +143,17 @@ const logInsights: LogInsight[] = [
 		}
 	),
 	new LogInsight(
+		"insight_duplicate_mods_title",
+		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+			const dupes = loadOrder.filter((value, index, array) => array.indexOf(value) !== index)
+			if (dupes.length > 0)
+				return {
+					desc: "insight_duplicate_mods_desc",
+					context: { dupes: dupes.join(", ") }
+				}
+		}
+	),
+	new LogInsight(
 		"insight_no_crash_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
 			if (!callstack.luaError && !callstack.engineError)
@@ -182,7 +193,7 @@ const logInsights: LogInsight[] = [
 				if (uiInfo && uiInfo.length > 0)
 					return {
 						desc: "insight_ui_info_desc",
-						context: { uiInfoList: uiInfo.join("\n").trim() }
+						context: { uiInfoList: uiInfo.join("\n") }
 					}
 			}
 		}
