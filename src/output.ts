@@ -76,7 +76,7 @@ function refreshInsights() {
 			trIntoElement(title, result.title)
 
 			const message = document.createElement("div")
-			message.classList.add("collapse-content")
+			message.classList.add("collapse-content", "flex", "flex-col", "gap-2")
 			trIntoElement(message, result.desc, result.context)
 
 			collapse.appendChild(checkbox)
