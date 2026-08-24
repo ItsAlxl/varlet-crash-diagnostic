@@ -153,12 +153,14 @@ export function parseCallstack(logText: string) {
 
 	const luaMatch = rgxLuaEnd.exec(logText)
 	if (luaMatch) {
-		if (luaMatch[1])
-			p.luaError = luaMatch[1]
-		if (luaMatch[2])
-			p.luaStack = luaMatch[2]
-		if (luaMatch[3])
-			p.luaValues = luaMatch[3]
+		function parseCallstackLua(key: keyof (ParsedCallstack), idx: number) {
+			const match = luaMatch![idx]
+			if (match)
+				p[key] = match.trim()
+		}
+		parseCallstackLua("luaError", 1)
+		parseCallstackLua("luaStack", 2)
+		parseCallstackLua("luaValues", 3)
 	}
 
 	function parseCallstackRegex(key: keyof (ParsedCallstack), regex: RegExp, groupIdx = 1) {
