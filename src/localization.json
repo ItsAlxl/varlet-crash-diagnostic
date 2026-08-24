@@ -61,7 +61,7 @@
 		"insight_hook_chain_desc_both": "The following mods hooked functions with the same name as those involved in the callstack. This could identify a culprit, or reveal a mod incompatibility, or mean absolutely nothing.\n{{solid}}\n\nThese mods hook a target that does not seem to be in the hook chain, but are presented here just in case:\n{{shaky}}",
 		"insight_none_title": "No insights :(",
 		"insight_none_desc_paste": "Specify the console log directory above to get more information.",
-		"insight_none_desc_file": "Varlet Crash Diagnostic doesn't have any insights to offer about this crash.",
+		"insight_none_desc_file": "Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit.",
 		"hint_or": "OR",
 		"hint_no_uploads": "Note: no files are actually uploaded."
 	}
