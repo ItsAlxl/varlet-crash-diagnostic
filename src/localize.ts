@@ -10,8 +10,8 @@ const VALID_LINKS: TranslateContext = {
 	alxl: "https://itsalxl.com",
 	repo: "https://github.com/ItsAlxl/varlet-crash-diagnostic",
 	donate: "https://ko-fi.com/itsalxl",
-	dml: "nhttps://www.nexusmods.com/warhammer40kdarktide/mods/19",
-	dmf: "nhttps://www.nexusmods.com/warhammer40kdarktide/mods/8",
+	dml: "https://www.nexusmods.com/warhammer40kdarktide/mods/19",
+	dmf: "https://www.nexusmods.com/warhammer40kdarktide/mods/8",
 	dxgi: "https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide",
 	oom: "https://forums.fatsharkgames.com/t/freezing-when-games-go-on-too-long/93895",
 }
