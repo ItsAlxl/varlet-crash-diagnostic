@@ -136,10 +136,10 @@ const crashInsights: CrashInsight[] = [
 
 const logInsights: LogInsight[] = [
 	new LogInsight(
-		"insight_dmf_loaded_twice_title",
+		"insight_dmlf_loaded_twice_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
-			if (loadOrder.length > 0 && (loadOrder.includes("DMF") || loadOrder.includes("dmf")))
-				return "insight_dmf_loaded_twice_desc"
+			if (loadOrder.length > 0 && (loadOrder.includes("DMF") || loadOrder.includes("dmf") || loadOrder.includes("base")))
+				return "insight_dmlf_loaded_twice_desc"
 		}
 	),
 	new LogInsight(
