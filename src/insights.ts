@@ -88,12 +88,12 @@ function insightOOM(message: string) {
 }
 
 function insightBaseIssue(message: string) {
-	if (message.includes("attempt to index field 'hook' (a nil value)"))
-		return "insight_dml_desc"
-
 	const mods = findModsFromPaths(message)
 	if (mods.includes("DMF") || mods.includes("dmf"))
 		return "insight_dmf_desc"
+
+	if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)"))
+		return "insight_dml_desc"
 }
 
 function insightCrashMessageMod(message: string, isInput = false) {
@@ -121,7 +121,7 @@ const crashInsights: CrashInsight[] = [
 		}
 	),
 	new CrashInsight(
-		"insight_dmfl_title",
+		"insight_dmlf_title",
 		(crash: ParsedCrashText) => {
 			return insightBaseIssue(crash.message)
 		}
