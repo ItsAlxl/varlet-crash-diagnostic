@@ -2,7 +2,7 @@ import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
 const rgxCrashMessage = /-\s*\[([^\]]+)]: ([^-]+)\s*-/
-const rgxModLoadingStart = /\[Lua\] \[Mod\] Loading [^\n]+mod_load_order.txt/g
+const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
@@ -127,21 +127,24 @@ export function parseCrashText(text: string) {
 }
 
 export function parseLoadOrder(logText: string) {
+	const loadOrder: string[] = []
+
 	// if there were reloads, we only care about the most recent
 	const starts = [...logText.matchAll(rgxModLoadingStart)]
-	const startAt = starts[starts.length - 1].index
-
-	const matches = logText.matchAll(rgxModLoaded)
-	const loadOrder: string[] = []
-	let first = true
-	for (const m of matches) {
-		if (m.index > startAt) {
-			const modName = m[1]
-			if (!(first && modName === "DMF"))
-				loadOrder.push(modName)
-			first = false
+	if (starts.length > 0) {
+		const startAt = starts[starts.length - 1].index
+		const matches = logText.matchAll(rgxModLoaded)
+		let first = true
+		for (const m of matches) {
+			if (m.index >= startAt) {
+				const modName = m[1]
+				if (!(first && modName === "DMF"))
+					loadOrder.push(modName)
+				first = false
+			}
 		}
 	}
+
 	return loadOrder
 }
 
