@@ -184,11 +184,6 @@ function tupleToElement(tuple: TranslatedTuple) {
 	}
 
 	element.innerText = tuple.text
-	if (tuple.attributes?.has("bold"))
-		element.classList.add("font-bold")
-	if (tuple.attributes?.has("italic"))
-		element.classList.add("italic")
-
 	return element
 }
 
