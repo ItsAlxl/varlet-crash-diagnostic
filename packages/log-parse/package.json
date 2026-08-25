@@ -11,11 +11,11 @@
 		"./parse": "./src/parse.ts"
 	},
 	"dependencies": {
-		"@varlet-crash-diagnostic/localize": "*"
+		"@varlet-crash-diagnostic/localize": "*",
+		"string-similarity-js": "^2.1.4"
 	},
 	"devDependencies": {
 		"@varlet-crash-diagnostic/typescript-config": "*",
-		"string-similarity-js": "^2.1.4",
 		"typescript": "^7.0.2"
 	}
 }
