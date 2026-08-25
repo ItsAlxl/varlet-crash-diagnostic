@@ -1,5 +1,8 @@
 import { type TranslateContext, trReport, trText } from "@varlet-crash-diagnostic/localize/all"
 import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { version } from "../package.json"
+
+export const INSIGHTS_VERSION = version
 
 type InsightContextualFind = {
 	desc: string,

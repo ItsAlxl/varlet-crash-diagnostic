@@ -1,4 +1,5 @@
 import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "@varlet-crash-diagnostic/localize/all"
+import { INSIGHTS_VERSION } from "@varlet-crash-diagnostic/log-parse/insights"
 import "./input_crash"
 import "./input_log"
 import "./dragndrop"
@@ -43,4 +44,4 @@ else
 	languageMenu?.remove()
 
 if (versionLabel)
-	versionLabel.innerText = "v" + __APP_VERSION__
+	versionLabel.innerText = "w" + __APP_VERSION__ + ", p" + INSIGHTS_VERSION
