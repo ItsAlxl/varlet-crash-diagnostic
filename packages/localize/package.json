@@ -1,0 +1,16 @@
+{
+	"name": "@varlet-crash-diagnostic/localize",
+	"version": "2026-08-25",
+	"type": "module",
+	"scripts": {
+		"dev": "tsc --watch",
+		"build": "tsc"
+	},
+	"exports": {
+		"./all": "./src/localize.ts"
+	},
+	"devDependencies": {
+		"@varlet-crash-diagnostic/typescript-config": "*",
+		"typescript": "^7.0.2"
+	}
+}

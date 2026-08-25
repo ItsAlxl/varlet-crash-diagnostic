@@ -1,5 +1,5 @@
-import { setElementTrKey } from "./localize"
-import { displayLog } from "./output"
+import { setElementTrKey } from "@varlet-crash-diagnostic/localize/all"
+import { displayLogFile } from "./output"
 
 const selectFile = document.getElementById("select-log") as HTMLInputElement
 const readSelectBtn = document.getElementById("parse-select-btn") as HTMLButtonElement
@@ -30,13 +30,13 @@ function applyLog(log: File) {
 	logFile = log
 	readSelectBtn.disabled = false
 	setElementTrKey(readSelectBtn, "input_file_parse")
-	displayLog(logFile!)
+	displayLogFile(logFile!)
 }
 
 selectFile.addEventListener("change", updateSelectedLog)
 readSelectBtn.addEventListener("click", function () {
 	if (logFile)
-		displayLog(logFile)
+		displayLogFile(logFile)
 })
 
 updateSelectedLog()

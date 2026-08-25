@@ -1,4 +1,4 @@
-import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "./localize"
+import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "@varlet-crash-diagnostic/localize/all"
 import "./input_crash"
 import "./input_log"
 import "./dragndrop"

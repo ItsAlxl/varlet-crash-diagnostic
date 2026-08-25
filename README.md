@@ -1,6 +1,6 @@
 # Varlet Crash Diagnostic
 
-A web app for diagnosing Darktide crashes and parsing its console logs.
+A web app for diagnosing Darktide crashes and parsing its console logs. There's a [live web app](itsalxl.github.io/varlet-crash-diagnostic) you can use right now.
 
 ## Building from Source
 
@@ -12,11 +12,16 @@ Execute the following commands within the project root to build the tool.
 # Get dependencies (only needed once)
 npm install
 
-# Build the application (repeat after changes to the source)
+# Build the applications (repeat after changes to the source)
 npm run build
+
+# Build the applications and watch for changes
+npm run dev
 ```
 
-The build's output is placed in a `dist/` directory within the project root. You cannot simply open the html file, however, due to an [intentional security mechanism](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS) built into browsers. Instead, you will need to host the contents of the `dist/` directory on a webserver. This can be done locally using Vite with either of the following commands.
+The build's output is placed in `dist/` directories located throughout the project.
+
+For the web app, you cannot simply open the html file due to an [intentional security mechanism](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS) built into browsers. Instead, you will need to host the contents of the `apps/web/dist/` directory on a webserver. This can be done locally using Vite with either of the following commands from the `apps/web/` directory.
 
 ```sh
 # Use Vite's local webserver
@@ -28,11 +33,11 @@ npm run dev
 
 Vite will tell you the URL to connect to.
 
-Deploying to a production environment only requires serving the contents of the `dist/` directory, which are static.
+Deploying the web app to a production environment only requires serving the contents of the `apps/web/dist/` directory, which are static.
 
 ## Localization
 
-Translations can be added or edited in the `src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, the `en` value is used as a fallback.
+Localizations can be added or edited in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, the `en` value is used as a fallback.
 
 Two forms of interpolation are supported:
 

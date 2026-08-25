@@ -1,0 +1,7 @@
+{
+	"name": "@varlet-crash-diagnostic/typescript-config",
+	"private": true,
+	"publishConfig": {
+		"access": "public"
+	}
+}
