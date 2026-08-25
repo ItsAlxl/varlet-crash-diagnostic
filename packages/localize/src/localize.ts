@@ -153,7 +153,6 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 }
 
 export function trRaw(k: string, ctx: TranslateContext = {}) {
-	//return []
 	return translate(k, localeKey, ctx)
 }
 

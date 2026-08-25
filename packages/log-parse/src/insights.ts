@@ -1,4 +1,4 @@
-import { type TranslateContext, trReport } from "@varlet-crash-diagnostic/localize/all"
+import { type TranslateContext, trReport, trText } from "@varlet-crash-diagnostic/localize/all"
 import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
 
 type InsightContextualFind = {
@@ -79,6 +79,21 @@ function findLogInsights(callstack: ParsedCallstack, loadOrder: string[], logTex
 	return results
 }
 
+function appendCallstackText(source: string, text: string | undefined, prefix = "") {
+	if (text)
+		return source + (source.length > 0 ? "\n\n" : "") + prefix + text
+	return source
+}
+
+function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => string) {
+	let callstackText = ""
+	callstackText = appendCallstackText(callstackText, callstack.engineError, `[${trCb("readout_engine_error")}]:\n`)
+	callstackText = appendCallstackText(callstackText, callstack.luaError, `[${trCb("readout_lua_error")}]:\n`)
+	callstackText = appendCallstackText(callstackText, callstack.luaStack, `[${trCb("readout_lua_stack")}]:\n`)
+	callstackText = appendCallstackText(callstackText, callstack.engineStack, `[${trCb("readout_engine_stack")}]:\n`)
+	return callstackText
+}
+
 export function createLogReport(logText: string, fileName: string | undefined) {
 	let guid = fileName ? findGuid(fileName) : ""
 	const guidFromFileName = guid.length > 0
@@ -87,39 +102,28 @@ export function createLogReport(logText: string, fileName: string | undefined) {
 
 	const callstack = parseCallstack(logText)
 	const loadOrder = parseLoadOrder(logText)
-
-	let callstackText = ""
-	function appendCallstackText(text: string | undefined, prefix = "") {
-		if (text)
-			callstackText += (callstackText.length > 0 ? "\n\n" : "") + prefix + text
-	}
-	appendCallstackText(callstack.engineError, "[Engine Error]:\n")
-	appendCallstackText(callstack.luaError, "[Script Error]:\n")
-	appendCallstackText(callstack.luaStack, "[Lua Stack]:\n")
-	appendCallstackText(callstack.engineStack, "[Engine Stack]:\n")
-
 	const insightResults = findLogInsights(callstack, loadOrder, logText)
 
 	const reportText = `Varlet report generated from ${fileName}${guidFromFileName ? "" : (" (session " + guid + ")")}
-[Varlet insights]:
+[${trReport("readout_insights")}]:
 ${insightResults.map(result => "> " + trReport(result.title) + "\n" + trReport(result.desc, result.context)).join("\n\n")}
 
 -----
-${callstackText}
+${createCallstackText(callstack, trReport)}
 
 -----
-[Lua values]:
+[${trReport("readout_lua_vals")}]:
 ${callstack.luaValues ?? ""}
 
 -----
-[Load order]:
+[${trReport("readout_load_order")}]:
 ${loadOrder.join("\n")}`.trim()
 
 	return {
 		guid: guid,
 		loadOrder: loadOrder,
 		callstack: callstack,
-		callstackText: callstackText,
+		callstackText: createCallstackText(callstack, trText),
 		insights: insightResults,
 		reportText: reportText
 	}
