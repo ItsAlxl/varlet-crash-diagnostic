@@ -14,15 +14,17 @@ function createLocaleOption(key: string, name: string) {
 	const btn = document.createElement("button")
 	if (getCurrentLocaleKey() == key)
 		btn.classList.add("menu-active")
-
-	const keySpan = document.createElement("span")
-	keySpan.classList.add("pe-2", "font-mono", "font-bold", "opacity-60")
-	keySpan.innerText = key
-	btn.appendChild(keySpan)
+	btn.classList.add("flex")
 
 	const nameSpan = document.createElement("span")
+	nameSpan.classList.add("grow")
 	nameSpan.innerText = name
 	btn.appendChild(nameSpan)
+
+	const keySpan = document.createElement("span")
+	keySpan.classList.add("pl-2", "font-mono", "font-bold", "opacity-60")
+	keySpan.innerText = key
+	btn.appendChild(keySpan)
 
 	btn.addEventListener("click", function () {
 		languageList?.querySelector(".menu-active")?.classList.remove("menu-active")
