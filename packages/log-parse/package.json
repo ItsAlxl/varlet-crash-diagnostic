@@ -1,0 +1,21 @@
+{
+	"name": "@varlet-crash-diagnostic/log-parse",
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "tsc --watch",
+		"build": "tsc"
+	},
+	"exports": {
+		"./insights": "./src/insights.ts",
+		"./parse": "./src/parse.ts"
+	},
+	"dependencies": {
+		"@varlet-crash-diagnostic/localize": "*"
+	},
+	"devDependencies": {
+		"@varlet-crash-diagnostic/typescript-config": "*",
+		"string-similarity-js": "^2.1.4",
+		"typescript": "^7.0.2"
+	}
+}

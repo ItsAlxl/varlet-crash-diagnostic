@@ -1,6 +1,6 @@
-import { findCrashInsights, findLogInsights, INSIGHT_NONE_FILE, INSIGHT_NONE_PASTE, type InsightResult } from "./insights"
-import { onLocaleChanged, trIntoElement, trReport, trText } from "./localize"
-import { findGuid, parseCallstack, parseLoadOrder, type ParsedCrashText } from "./parse"
+import { findCrashInsights, createLogReport, type InsightResult } from "@varlet-crash-diagnostic/log-parse/insights"
+import { onLocaleChanged, trIntoElement } from "@varlet-crash-diagnostic/localize/all"
+import type { ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 
 const navbar = document.getElementById("navbar") as HTMLDivElement
 
@@ -50,11 +50,7 @@ function scrollToInsights() {
 	})
 }
 
-function displayInsights(bucket: HTMLDivElement, insights: InsightResult[], fromLogFile: boolean) {
-	if (insights.length == 0) {
-		insights.push(fromLogFile ? INSIGHT_NONE_FILE : INSIGHT_NONE_PASTE)
-	}
-
+function displayInsights(bucket: HTMLDivElement, insights: InsightResult[]) {
 	lastInsightBucket = bucket
 	lastInsights = insights
 	refreshInsights()
@@ -91,65 +87,36 @@ function refreshInsights() {
 export function showCrashInsights(p: ParsedCrashText | undefined) {
 	crashGuid = p?.guid ?? ""
 	if (p)
-		displayInsights(crashInsights, findCrashInsights(p), false)
+		displayInsights(crashInsights, findCrashInsights(p))
 	switchGuidVis(crashGuid)
 }
 
-export function displayLog(file: File) {
-	logGuid = findGuid(file.name)
-	const guidFromFileName = logGuid.length > 0
+export function displayLogFile(file: File) {
 	switchGuidVis("")
+	const fileName = file.name
+	fileLabel.innerText = fileName
 
-	fileLabel.innerText = file.name
 	file.text().then((logText) => {
-		if (!guidFromFileName)
-			logGuid = findGuid(logText)
-		switchGuidVis(logGuid)
+		const report = createLogReport(logText, fileName)
+		logGuid = report.guid
+		switchGuidVis(report.guid)
 
-		const loadOrder = parseLoadOrder(logText)
-		loadOrderList.replaceChildren(...loadOrder.map((o) => {
+		loadOrderList.replaceChildren(...report.loadOrder.map((o) => {
 			const item = document.createElement("li")
 			item.innerText = o
 			return item
 		}))
 
-		const callstack = parseCallstack(logText)
-		let callstackText = ""
-		function appendCallstackText(text: string | undefined, prefix = "") {
-			if (text)
-				callstackText += (callstackText.length > 0 ? "\n\n" : "") + prefix + text
-		}
-		appendCallstackText(callstack.engineError, "[Engine Error]:\n")
-		appendCallstackText(callstack.luaError, "[Script Error]:\n")
-		appendCallstackText(callstack.luaStack, "[Lua Stack]:\n")
-		appendCallstackText(callstack.engineStack, "[Engine Stack]:\n")
-		callstackDisplay.innerText = callstackText
+		const callstack = report.callstack
+		callstackDisplay.innerText = report.callstackText
 		localsDisplay.innerText = callstack.luaValues ?? ""
-
-		const insightResults = findLogInsights(callstack, loadOrder, logText)
-		displayInsights(logInsights, insightResults, true)
-
-		reportText = `Varlet report generated from ${file.name}${guidFromFileName ? "" : (" (session " + logGuid + ")")}
-[Varlet insights]:
-${insightResults.map(result => "> " + trReport(result.title) + "\n" + trReport(result.desc, result.context)).join("\n\n")}
-
------
-${callstackText}
-
------
-[Lua values]:
-${callstack.luaValues ?? ""}
-
------
-[Load order]:
-${loadOrder.join("\n")}`.trim()
-
-		reportTextArea.innerHTML = reportText.replace("\n", "&#10;")
+		displayInsights(logInsights, report.insights)
+		reportTextArea.innerHTML = report.reportText.replace("\n", "&#10;")
 
 		if (reportSaveLink.href.length > 0)
 			window.URL.revokeObjectURL(reportSaveLink.href)
 		reportSaveLink.href = window.URL.createObjectURL(new Blob([reportText], { type: "text/plain" }))
-		reportSaveLink.download = file.name.replace("console-", "varlet-").replace(".log", ".txt")
+		reportSaveLink.download = fileName.replace("console-", "varlet-").replace(".log", ".txt")
 	})
 }
 

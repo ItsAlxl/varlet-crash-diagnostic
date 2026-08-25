@@ -1,5 +1,8 @@
-import { trRaw, type TranslateContext } from "./localize"
-import { comparesMismatchedTypes, findModsFromPaths, findUiInfo, hasInputCall, parseHookChains, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { type TranslateContext, trReport, trText } from "@varlet-crash-diagnostic/localize/all"
+import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { version } from "../package.json"
+
+export const INSIGHTS_VERSION = version
 
 type InsightContextualFind = {
 	desc: string,
@@ -9,12 +12,12 @@ type InsightFind = InsightContextualFind | string | undefined
 
 export type InsightResult = InsightContextualFind & { title: string }
 
-export const INSIGHT_NONE_PASTE: InsightResult = {
+const INSIGHT_NONE_PASTE: InsightResult = {
 	title: "insight_none_title",
 	desc: "insight_none_desc_paste"
 }
 
-export const INSIGHT_NONE_FILE: InsightResult = {
+const INSIGHT_NONE_FILE: InsightResult = {
 	title: "insight_none_title",
 	desc: "insight_none_desc_file"
 }
@@ -59,10 +62,13 @@ export function findCrashInsights(crash: ParsedCrashText) {
 			results.push(createResult(f, ins.title))
 		}
 	}
+
+	if (results.length === 0)
+		results.push(INSIGHT_NONE_PASTE)
 	return results
 }
 
-export function findLogInsights(callstack: ParsedCallstack, loadOrder: string[], logText: string) {
+function findLogInsights(callstack: ParsedCallstack, loadOrder: string[], logText: string) {
 	const results: InsightResult[] = []
 	for (const ins of logInsights) {
 		const f = ins.findCb(callstack, loadOrder, logText)
@@ -70,7 +76,60 @@ export function findLogInsights(callstack: ParsedCallstack, loadOrder: string[],
 			results.push(createResult(f, ins.title))
 		}
 	}
+
+	if (results.length === 0)
+		results.push(INSIGHT_NONE_FILE)
 	return results
+}
+
+function appendCallstackText(source: string, text: string | undefined, prefix = "") {
+	if (text)
+		return source + (source.length > 0 ? "\n\n" : "") + prefix + text
+	return source
+}
+
+function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => string) {
+	let callstackText = ""
+	callstackText = appendCallstackText(callstackText, callstack.engineError, `[${trCb("readout_engine_error")}]:\n`)
+	callstackText = appendCallstackText(callstackText, callstack.luaError, `[${trCb("readout_lua_error")}]:\n`)
+	callstackText = appendCallstackText(callstackText, callstack.luaStack, `[${trCb("readout_lua_stack")}]:\n`)
+	callstackText = appendCallstackText(callstackText, callstack.engineStack, `[${trCb("readout_engine_stack")}]:\n`)
+	return callstackText
+}
+
+export function createLogReport(logText: string, fileName: string | undefined) {
+	let guid = fileName ? findGuid(fileName) : ""
+	const guidFromFileName = guid.length > 0
+	if (!guidFromFileName)
+		guid = findGuid(logText)
+
+	const callstack = parseCallstack(logText)
+	const loadOrder = parseLoadOrder(logText)
+	const insightResults = findLogInsights(callstack, loadOrder, logText)
+
+	const reportText = `Varlet report generated from ${fileName}${guidFromFileName ? "" : (" (session " + guid + ")")}
+[${trReport("readout_insights")}]:
+${insightResults.map(result => "> " + trReport(result.title) + "\n" + trReport(result.desc, result.context)).join("\n\n")}
+
+-----
+${createCallstackText(callstack, trReport)}
+
+-----
+[${trReport("readout_lua_vals")}]:
+${callstack.luaValues ?? ""}
+
+-----
+[${trReport("readout_load_order")}]:
+${loadOrder.join("\n")}`.trim()
+
+	return {
+		guid: guid,
+		loadOrder: loadOrder,
+		callstack: callstack,
+		callstackText: createCallstackText(callstack, trText),
+		insights: insightResults,
+		reportText: reportText
+	}
 }
 
 function filterOutDmf(value: string) {

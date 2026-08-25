@@ -1,0 +1,6 @@
+{
+	"extends": "@varlet-crash-diagnostic/typescript-config/vite.json",
+	"include": [
+		"src"
+	]
+}

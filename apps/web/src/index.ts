@@ -1,4 +1,5 @@
-import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "./localize"
+import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "@varlet-crash-diagnostic/localize/all"
+import { INSIGHTS_VERSION } from "@varlet-crash-diagnostic/log-parse/insights"
 import "./input_crash"
 import "./input_log"
 import "./dragndrop"
@@ -14,15 +15,17 @@ function createLocaleOption(key: string, name: string) {
 	const btn = document.createElement("button")
 	if (getCurrentLocaleKey() == key)
 		btn.classList.add("menu-active")
-
-	const keySpan = document.createElement("span")
-	keySpan.classList.add("pe-2", "font-mono", "font-bold", "opacity-60")
-	keySpan.innerText = key
-	btn.appendChild(keySpan)
+	btn.classList.add("flex")
 
 	const nameSpan = document.createElement("span")
+	nameSpan.classList.add("grow")
 	nameSpan.innerText = name
 	btn.appendChild(nameSpan)
+
+	const keySpan = document.createElement("span")
+	keySpan.classList.add("pl-2", "font-mono", "font-bold", "opacity-60")
+	keySpan.innerText = key
+	btn.appendChild(keySpan)
 
 	btn.addEventListener("click", function () {
 		languageList?.querySelector(".menu-active")?.classList.remove("menu-active")
@@ -41,4 +44,4 @@ else
 	languageMenu?.remove()
 
 if (versionLabel)
-	versionLabel.innerText = "v" + __APP_VERSION__
+	versionLabel.innerText = "w" + __APP_VERSION__ + ", p" + INSIGHTS_VERSION

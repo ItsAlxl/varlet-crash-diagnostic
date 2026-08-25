@@ -153,7 +153,6 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 }
 
 export function trRaw(k: string, ctx: TranslateContext = {}) {
-	//return []
 	return translate(k, localeKey, ctx)
 }
 
@@ -185,11 +184,6 @@ function tupleToElement(tuple: TranslatedTuple) {
 	}
 
 	element.innerText = tuple.text
-	if (tuple.attributes?.has("bold"))
-		element.classList.add("font-bold")
-	if (tuple.attributes?.has("italic"))
-		element.classList.add("italic")
-
 	return element
 }
 

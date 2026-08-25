@@ -1,6 +1,6 @@
-import { findGuid, parseCrashText } from "./parse"
-import { displayLog, showCrashInsights } from "./output"
-import { setElementTrKey } from "./localize"
+import { findGuid, parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { displayLogFile, showCrashInsights } from "./output"
+import { setElementTrKey } from "@varlet-crash-diagnostic/localize/all"
 
 const crashPasteText = document.getElementById("crashpaste-text") as HTMLTextAreaElement
 const logsFolder = document.getElementById("crash-folder") as HTMLInputElement
@@ -36,7 +36,7 @@ crashPasteText.addEventListener("input", parseInput)
 logsFolder.addEventListener("change", findCrashLog)
 readCrashBtn.addEventListener("click", function () {
 	if (crashFile)
-		displayLog(crashFile)
+		displayLogFile(crashFile)
 })
 
 parseInput()
