@@ -35,7 +35,7 @@ export function configureLocalization(config: {
 
 function getStartingLocale() {
 	if (browser) {
-		const languages = ["cap"]//navigator.languages
+		const languages = navigator.languages
 		for (const lang of languages) {
 			if (L10N.hasOwnProperty(lang))
 				return lang
@@ -142,9 +142,7 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 							tuple.attributes = new Map<string, string>()
 						}
 						tuple.attributes.set(linkSplit[0], linkSplit[1])
-
-						const url = getLinkUrl(linkSplit[1])
-						tuple.text = url
+						tuple.text = getLinkUrl(linkSplit[1])
 					} else {
 						tuple.text = (ctx ? ctx[terpContextual] : undefined) ?? ("<missing ctx: " + terpContextual + ">")
 					}
