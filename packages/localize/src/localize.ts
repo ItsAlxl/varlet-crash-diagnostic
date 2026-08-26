@@ -21,25 +21,35 @@ const fallbackLocaleKey = "en"
 let localeKey = ""
 let onChangeCbs: (() => void)[] = []
 
-function getStartingLocale() {
-	const languages = navigator.languages
-	for (const lang of languages) {
-		if (L10N.hasOwnProperty(lang))
-			return lang
-	}
+let browser = true
+let mdSuppressLinks = false
 
-	for (const lang of languages) {
-		const langSubtag = lang.split("-")[0]
-		const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
-		if (matched)
-			return matched
+export function configureLocalization(config: {
+	browser?: boolean,
+	mdSuppressLinks?: boolean
+}) {
+	browser = config.browser ?? browser
+	mdSuppressLinks = config.mdSuppressLinks ?? mdSuppressLinks
+	setLocale(getStartingLocale())
+}
+
+function getStartingLocale() {
+	if (browser) {
+		const languages = navigator.languages
+		for (const lang of languages) {
+			if (L10N.hasOwnProperty(lang))
+				return lang
+		}
+
+		for (const lang of languages) {
+			const langSubtag = lang.split("-")[0]
+			const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
+			if (matched)
+				return matched
+		}
 	}
 
 	return "en"
-}
-
-if (localeKey.length == 0) {
-	setLocale(getStartingLocale())
 }
 
 export function onLocaleChanged(cb: () => void) {
@@ -50,7 +60,7 @@ export function setLocale(loc: string) {
 	const previousLocale = localeKey
 	localeKey = L10N.hasOwnProperty(loc) ? loc : fallbackLocaleKey
 
-	if (previousLocale !== localeKey) {
+	if (browser && previousLocale !== localeKey) {
 		for (const elm of document.querySelectorAll("[data-loc-key]") as NodeListOf<HTMLElement>) {
 			trIntoElement(elm)
 		}
@@ -71,6 +81,9 @@ export function getAllLocaleNames() {
 }
 
 export function getCurrentLocaleKey() {
+	if (localeKey.length == 0) {
+		setLocale(getStartingLocale())
+	}
 	return localeKey
 }
 
@@ -153,7 +166,7 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 }
 
 export function trRaw(k: string, ctx: TranslateContext = {}) {
-	return translate(k, localeKey, ctx)
+	return translate(k, getCurrentLocaleKey(), ctx)
 }
 
 function rawToText(raw: TranslatedParagraph[]) {
@@ -174,7 +187,8 @@ function getLinkUrl(link: string) {
 
 function tupleToElement(tuple: TranslatedTuple) {
 	let element
-	const linkTarget = tuple.attributes?.get("link")
+	const attr = tuple.attributes
+	const linkTarget = attr?.get("link")
 	if (linkTarget) {
 		element = document.createElement("a") as HTMLAnchorElement
 		element.classList.add("link")
@@ -182,6 +196,9 @@ function tupleToElement(tuple: TranslatedTuple) {
 	} else {
 		element = document.createElement("span")
 	}
+
+	if (attr?.has("code"))
+		element.classList.add("font-mono")
 
 	element.innerText = tuple.text
 	return element
@@ -193,6 +210,22 @@ export function trHtml(k: string, ctx: TranslateContext = {}) {
 		div.replaceChildren(...p.map(tupleToElement))
 		return div
 	})
+}
+
+function tupleToMarkdown(t: TranslatedTuple) {
+	let text = t.text
+	const attr = t.attributes
+	if (attr) {
+		if (attr.get("code"))
+			text = "`" + text + "`"
+		else if (mdSuppressLinks && attr.get("link"))
+			text = "<" + text + ">"
+	}
+	return text
+}
+
+export function trMarkdown(k: string, ctx: TranslateContext = {}) {
+	return trRaw(k, ctx).map(p => p.map(tupleToMarkdown).join("")).join("\n\n")
 }
 
 export function trIntoElement(element: HTMLElement, k: string | undefined = undefined, ctx: TranslateContext = undefined) {

@@ -1,4 +1,4 @@
-import { getAllLocaleNames, getCurrentLocaleKey, setLocale } from "@varlet-crash-diagnostic/localize/all"
+import { getAllLocaleNames, getCurrentLocaleKey, setLocale, configureLocalization } from "@varlet-crash-diagnostic/localize/all"
 import { INSIGHTS_VERSION } from "@varlet-crash-diagnostic/log-parse/insights"
 import "./input_crash"
 import "./input_log"
@@ -9,6 +9,7 @@ const versionLabel = document.getElementById("version-label")
 const languageMenu = document.getElementById("language-menu")
 const languageList = document.getElementById("language-list")
 
+configureLocalization({ browser: true })
 function createLocaleOption(key: string, name: string) {
 	const li = document.createElement("li")
 
