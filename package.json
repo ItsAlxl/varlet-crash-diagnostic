@@ -10,6 +10,7 @@
 		"telem-check": "turbo telemetry status"
 	},
 	"devDependencies": {
+		"concurrently": "^10.0.5",
 		"turbo": "^2.10.11"
 	},
 	"packageManager": "npm@12.0.2",

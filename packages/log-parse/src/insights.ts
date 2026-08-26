@@ -6,15 +6,29 @@ export const INSIGHTS_VERSION = version
 
 type InsightContextualFind = {
 	desc: string,
+	descTerse?: string,
 	context?: TranslateContext
 }
 type InsightFind = InsightContextualFind | string | undefined
 
 export type InsightResult = InsightContextualFind & { title: string }
+export type LogReport = {
+	guid: string,
+	loadOrder: string[],
+	callstack: ParsedCallstack,
+	callstackText: string,
+	insights: InsightResult[],
+	reportText: string
+}
 
 const INSIGHT_NONE_PASTE: InsightResult = {
 	title: "insight_none_title",
 	desc: "insight_none_desc_paste"
+}
+
+const INSIGHT_NONE_PASTE_BOT: InsightResult = {
+	title: "insight_none_title",
+	desc: "insight_none_desc_paste_bot"
 }
 
 const INSIGHT_NONE_FILE: InsightResult = {
@@ -54,7 +68,7 @@ function createResult(result: InsightFind, title: string) {
 	return ir
 }
 
-export function findCrashInsights(crash: ParsedCrashText) {
+export function findCrashInsights(crash: ParsedCrashText, botEmptyMessage = false) {
 	const results: InsightResult[] = []
 	for (const ins of crashInsights) {
 		const f = ins.findCb(crash)
@@ -64,7 +78,7 @@ export function findCrashInsights(crash: ParsedCrashText) {
 	}
 
 	if (results.length === 0)
-		results.push(INSIGHT_NONE_PASTE)
+		results.push(botEmptyMessage ? INSIGHT_NONE_PASTE_BOT : INSIGHT_NONE_PASTE)
 	return results
 }
 
@@ -97,7 +111,7 @@ function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => 
 	return callstackText
 }
 
-export function createLogReport(logText: string, fileName: string | undefined) {
+export function createLogReport(logText: string, fileName: string | undefined): LogReport {
 	let guid = fileName ? findGuid(fileName) : ""
 	const guidFromFileName = guid.length > 0
 	if (!guidFromFileName)
@@ -278,10 +292,19 @@ const logInsights: LogInsight[] = [
 					const solid = chains.filter(c => c.confident).map(c => c.target + "::" + c.func + " - " + c.mods.join(", ")).join("\n")
 					const shaky = chains.filter(c => !c.confident).map(c => c.target + "::" + c.func + " - " + c.mods.join(", ")).join("\n")
 					const hasSolids = solid.length > 0
-
+					const onlySolids = hasSolids && shaky.length > 0
 					return {
-						desc: (hasSolids && shaky.length > 0) ? "insight_hook_chain_desc_both" : (hasSolids ? "insight_hook_chain_desc_solid_only" : "insight_hook_chain_desc_shaky_only"),
-						context: { solid: solid, shaky: shaky }
+						desc: onlySolids
+							? "insight_hook_chain_desc_both"
+							: (hasSolids
+								? "insight_hook_chain_desc_solid_only"
+								: "insight_hook_chain_desc_shaky_only"),
+						context: { solid: solid, shaky: shaky },
+						descTerse: onlySolids
+							? "insight_hook_chain_desc_both_terse"
+							: (hasSolids
+								? "insight_hook_chain_desc_solid_only"
+								: ""),
 					}
 				}
 			}
