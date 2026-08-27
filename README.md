@@ -4,9 +4,9 @@ Parse Darktide's console logs and diagnose crashes. There's a [live web app](htt
 
 ## Building from Source
 
-You can build and run the tool yourself from the source code; all you need is [NodeJS](https://nodejs.org/).
+You can build and run the tools yourself from the source code; all you need is [NodeJS](https://nodejs.org/).
 
-Execute the following commands within the project root to build the tool.
+Execute the following commands within the project root to build the tools.
 
 ```sh
 # Get dependencies (only needed once, but may take a while!)
@@ -53,7 +53,7 @@ Two forms of interpolation are supported:
 1. `"This is a {{variable}} value."` - `{{variable}}` is replaced by a contextual variable named `variable`.
 2. `"This is a {{'literal string'}} value."` - `{{'literal string'}}` is replaced by the text `literal string`. While this form of interpolation isn't useful on its own, it helps to declutter the translations file when the interpolated value has other attributes (see below).
 
-Interpolations can have attributes after the translation key, which are only relevant when the result is sent to the DOM (and not just plaintext). Currently two attributes are supported:
+Interpolations can have attributes after the translation key, which are only relevant when the result is sent to the DOM or sent as Markdown (and not just plaintext). Currently two attributes are supported:
 
 - `code` uses a monospace font.
 - `link=<link_key>` makes the interpolated text a link. `link_key` is not arbitrary; the list of supported links can be found in `packages/localize/src/localize.ts`
