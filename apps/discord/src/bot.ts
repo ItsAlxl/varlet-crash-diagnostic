@@ -1,9 +1,13 @@
 import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
-import { Client, Events, GatewayIntentBits, type Message, type MessageReplyOptions, type OmitPartialGroupDMChannel } from "discord.js"
+import { Client, Events, GatewayIntentBits, type Message, type MessageReplyOptions, type OmitPartialGroupDMChannel, type PartialMessage } from "discord.js"
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] })
+const replyRetargeting = process.env.PRIVILEGED_MESSAGE_CONTENT?.toLowerCase() === "true"
+const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
+if (replyRetargeting)
+	intents.push(GatewayIntentBits.MessageContent)
+const client = new Client({ intents: intents })
 
 configureLocalization({
 	browser: false,
@@ -41,7 +45,11 @@ function getTerseInsightText(insights: InsightResult[], markdown = false) {
 		.trim()
 }
 
-async function respondTo(msg: OmitPartialGroupDMChannel<Message<boolean>>) {
+function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
+	return client.user && msg.mentions.members?.has(client.user.id)
+}
+
+async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) {
 	const response: MessageReplyOptions = {}
 	let messageText = ""
 
@@ -100,10 +108,11 @@ client.on("messageCreate", async (msg) => {
 	if (msg.author === client.user)
 		return
 
-	respondTo(msg)
-	if (msg.reference) {
-		const targetReply = await msg.fetchReference()
-		respondTo(targetReply)
+	if (msgPingsMe(msg)) {
+		sendReportFrom(msg)
+		if (replyRetargeting && msg.reference) {
+			msg.fetchReference().then(sendReportFrom)
+		}
 	}
 })
 
@@ -111,7 +120,8 @@ client.on("messageUpdate", async (oldMsg, newMsg) => {
 	if (newMsg.author === client.user)
 		return
 
-	respondTo(newMsg)
+	if (!msgPingsMe(oldMsg))
+		sendReportFrom(newMsg)
 })
 
 client.login(process.env.DISCORD_TOKEN)

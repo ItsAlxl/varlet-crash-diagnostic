@@ -40,9 +40,13 @@ Deploying the web app to a production environment only requires serving the cont
 
 ### Discord Bot
 
-The bot parses logs and crash text when pinged. You can ask it to read logs by either pinging it in the message that has the logs attached or by pinging it in a reply to a message with logs. Note that the content of messages that do not ping the bot is [considered privleged](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent#message-content-intent), so the reply method may only work if the original message pinged (or is edited to ping) the bot.
+The bot parses logs and crash text when pinged. Ping it in a message with logs attached and it will respond with a readout of insights and an attached report. You can also get the bot to respond to an already-sent message by editing the message text to ping the bot.
 
-Running the bot requires providing a valid Discord bot auth token, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Both `npm run dev` and `npm run bot` expect the token to be supplied as `DISCORD_TOKEN=your-token-here` in a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the `DISCORD_TOKEN` environment variable and run the bot with `node apps/discord/dist/bot.js`
+Alternatively, you can ping the bot in a reply to a message that has logs attached, and the bot will respond to the original message. However, the content of messages that do not ping the bot is [considered privileged](https://support-dev.discord.com/hc/en-us/articles/6205754771351-How-do-I-get-Privileged-Intents-for-my-bot), so this is an optional feature that has to be enabled with the environment variable `PRIVILEGED_MESSAGE_CONTENT=true`
+
+Running the bot requires providing a valid Discord bot auth token, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_TOKEN=your-token-here`
+
+Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
 
 ## Localization
 
