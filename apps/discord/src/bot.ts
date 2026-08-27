@@ -10,7 +10,8 @@ if (replyRetargeting)
 const client = new Client({ intents: intents })
 
 const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
-const dedupeHistory: string[] = []
+const dedupeHistoryLogs: string[] = []
+const dedupeHistoryPastes: string[] = []
 
 configureLocalization({
 	browser: false,
@@ -21,23 +22,16 @@ client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`)
 })
 
-function isDupe(guid: string) {
-	return dedupeHistory.includes(guid)
-}
-
-function pushDedupeHistory(guid: string) {
-	dedupeHistory.push(guid)
-	if (dedupeHistory.length > dedupeHistoryMax) {
-		dedupeHistory.shift()
+function observeDedupe(history: string[], guid: string) {
+	if (history.includes(guid)) {
+		return false
 	}
-}
 
-function observeDedupe(guid: string) {
-	if (!isDupe(guid)) {
-		pushDedupeHistory(guid)
-		return true
+	history.push(guid)
+	if (history.length > dedupeHistoryMax) {
+		history.shift()
 	}
-	return false
+	return true
 }
 
 function trInsightTerseDesc(ins: InsightResult, markdown = false) {
@@ -86,7 +80,7 @@ async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) 
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
 				const logReport = createLogReport(await fileFetch.text(), fileName)
-				if (observeDedupe(logReport.guid)) {
+				if (observeDedupe(dedupeHistoryLogs, logReport.guid)) {
 					reports.push({
 						fileName: "varlet-" + logReport.guid,
 						report: logReport
@@ -111,9 +105,9 @@ async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) 
 				title: r.fileName
 			}
 		})
-	} else if (crashTextParse && observeDedupe(crashTextParse.guid)) {
+	} else if (crashTextParse && observeDedupe(dedupeHistoryPastes, crashTextParse.guid)) {
 		const crashInsights = findCrashInsights(crashTextParse, true)
-		response.content = `${trReport("faq_log_location_desc_full")}
+		messageText = `${trReport("faq_log_location_desc_full")}
 ${markdownBold(trReport("faq_log_location_steam_title"))} \`${trReport("faq_log_location_steam_path")}\`
 ${markdownBold(trReport("faq_log_location_xbox_title"))} \`${trReport("faq_log_location_xbox_path")}\`
 ${markdownBold(trReport("faq_log_location_proton_title"))} \`${trReport("faq_log_location_proton_path")}\`
