@@ -116,7 +116,7 @@ export function displayLogFile(file: File) {
 		if (reportSaveLink.href.length > 0)
 			window.URL.revokeObjectURL(reportSaveLink.href)
 		reportSaveLink.href = window.URL.createObjectURL(new Blob([reportText], { type: "text/plain" }))
-		reportSaveLink.download = fileName.replace("console-", "varlet-").replace(".log", ".txt")
+		reportSaveLink.download = "varlet-" + logGuid + ".txt"
 	})
 }
 
