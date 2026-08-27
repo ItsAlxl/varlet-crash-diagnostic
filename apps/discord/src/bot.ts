@@ -1,7 +1,7 @@
 import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
-import { Client, Events, GatewayIntentBits, type Message, type MessageReplyOptions, type OmitPartialGroupDMChannel, type PartialMessage } from "discord.js"
+import { Client, EmbedBuilder, Events, GatewayIntentBits, type APIEmbedField, type Message, type MessageReplyOptions, type PartialMessage } from "discord.js"
 
 const replyRetargeting = process.env.PRIVILEGED_MESSAGE_CONTENT?.toLowerCase() === "true"
 const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
@@ -44,30 +44,21 @@ function trInsightTerseDesc(ins: InsightResult, markdown = false) {
 		: trReport(descTerse ?? ins.desc, ins.context)
 }
 
-function markdownBold(text: string) {
-	return "**" + text + "**"
-}
-
-function getTerseInsightText(insights: InsightResult[], markdown = false) {
-	return insights
-		.filter(ins => ins.descTerse !== "")
-		.map(ins => {
-			let title = trReport(ins.title)
-			if (markdown)
-				title = markdownBold(title)
-			return title + "\n" + trInsightTerseDesc(ins, markdown)
-		})
-		.join("\n\n")
-		.trim()
+function embedFieldsFromInsights(insights: InsightResult[]): APIEmbedField[] {
+	return insights.map(ins => {
+		return {
+			name: trReport(ins.title),
+			value: trInsightTerseDesc(ins, true)
+		}
+	})
 }
 
 function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
 	return client.user && msg.mentions.members?.has(client.user.id)
 }
 
-async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) {
+async function sendReportFrom(msg: Message<boolean>) {
 	const response: MessageReplyOptions = {}
-	let messageText = ""
 
 	const crashTextParse = parseCrashText(msg.content)
 	const hasCrashReport = crashTextParse !== undefined
@@ -93,11 +84,19 @@ async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) 
 		}
 	}
 
+	const embedBuilder = new EmbedBuilder()
+	let containsContent = false
 	if (reports.length > 0) {
+		containsContent = true
+
 		if (reportMismatch)
-			messageText = markdownBold(trReport("insight_guid_mismatch_title")) + "\n" + trReport(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl") + "\n\n"
+			embedBuilder.addFields({
+				name: trReport("insight_guid_mismatch_title"),
+				value: trReport(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
+			})
 		if (reports.length === 1)
-			messageText += getTerseInsightText(reports[0].report.insights, true)
+			embedBuilder.addFields(...embedFieldsFromInsights(reports[0].report.insights))
+
 		response.files = reports.map(r => {
 			return {
 				attachment: Buffer.from(r.report.reportText),
@@ -106,18 +105,26 @@ async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) 
 			}
 		})
 	} else if (crashTextParse && observeDedupe(dedupeHistoryPastes, crashTextParse.guid)) {
-		const crashInsights = findCrashInsights(crashTextParse, true)
-		messageText = `${trReport("faq_log_location_desc_full")}
-${markdownBold(trReport("faq_log_location_steam_title"))} \`${trReport("faq_log_location_steam_path")}\`
-${markdownBold(trReport("faq_log_location_xbox_title"))} \`${trReport("faq_log_location_xbox_path")}\`
-${markdownBold(trReport("faq_log_location_proton_title"))} \`${trReport("faq_log_location_proton_path")}\`
+		containsContent = true
 
-${getTerseInsightText(crashInsights, true)}`
+		embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
+		embedBuilder.setDescription(`${trReport("faq_log_location_desc_full")}
+
+${trReport("faq_log_location_steam_title")}
+\`${trReport("faq_log_location_steam_path")}\`
+
+${trReport("faq_log_location_xbox_title")}
+\`${trReport("faq_log_location_xbox_path")}\`
+
+${trReport("faq_log_location_proton_title")}
+\`${trReport("faq_log_location_proton_path")}\``)
 	}
 
-	if (messageText.length > 0 || reports.length > 0) {
-		if (messageText.length > 0)
-			response.content = messageText.trim()
+	if (containsContent) {
+		embedBuilder.setURL("https://itsalxl.github.io/varlet-crash-diagnostic")
+		embedBuilder.setTitle(trReport("varlet_tool_title"))
+		embedBuilder.setColor("#782312")
+		response.embeds = [embedBuilder]
 		msg.reply(response)
 	}
 }
