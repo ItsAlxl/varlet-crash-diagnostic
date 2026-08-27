@@ -9,6 +9,9 @@ if (replyRetargeting)
 	intents.push(GatewayIntentBits.MessageContent)
 const client = new Client({ intents: intents })
 
+const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
+const dedupeHistory: string[] = []
+
 configureLocalization({
 	browser: false,
 	mdSuppressLinks: true
@@ -17,6 +20,25 @@ configureLocalization({
 client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`)
 })
+
+function isDupe(guid: string) {
+	return dedupeHistory.includes(guid)
+}
+
+function pushDedupeHistory(guid: string) {
+	dedupeHistory.push(guid)
+	if (dedupeHistory.length > dedupeHistoryMax) {
+		dedupeHistory.shift()
+	}
+}
+
+function observeDedupe(guid: string) {
+	if (!isDupe(guid)) {
+		pushDedupeHistory(guid)
+		return true
+	}
+	return false
+}
 
 function trInsightTerseDesc(ins: InsightResult, markdown = false) {
 	const descTerse = ins.descTerse
@@ -64,13 +86,15 @@ async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) 
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
 				const logReport = createLogReport(await fileFetch.text(), fileName)
-				reports.push({
-					fileName: "varlet-" + logReport.guid,
-					report: logReport
-				})
+				if (observeDedupe(logReport.guid)) {
+					reports.push({
+						fileName: "varlet-" + logReport.guid,
+						report: logReport
+					})
 
-				if (hasCrashReport && reportMismatch)
-					reportMismatch = logReport.guid !== crashTextParse.guid
+					if (hasCrashReport && reportMismatch)
+						reportMismatch = logReport.guid !== crashTextParse.guid
+				}
 			}
 		}
 	}
@@ -87,7 +111,7 @@ async function sendReportFrom(msg: OmitPartialGroupDMChannel<Message<boolean>>) 
 				title: r.fileName
 			}
 		})
-	} else if (crashTextParse) {
+	} else if (crashTextParse && observeDedupe(crashTextParse.guid)) {
 		const crashInsights = findCrashInsights(crashTextParse, true)
 		response.content = `${trReport("faq_log_location_desc_full")}
 ${markdownBold(trReport("faq_log_location_steam_title"))} \`${trReport("faq_log_location_steam_path")}\`
