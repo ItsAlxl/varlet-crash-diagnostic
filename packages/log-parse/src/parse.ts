@@ -15,6 +15,8 @@ const rgxHookNotification = /\[MOD\]\[([^\n]+?)\]\[INFO\] \(hook(?:\S+?)?\): Hoo
 const rgxInputCall = /@scripts\/managers\/player\/player_game_states\/human_input_handler\.lua:\d+: in function _parse_input/
 const rgxComparisonTypeMismatch = /: attempt to compare \S+ with \S+/
 const rgxUiInfo = /\b(name|scenegraph_id|style_id|value_id|view_name) = "([^"]+)"/g
+const rgxOom = /Not enough memory reserved for heap 'lua_heap', reserved: (\d+), required: (\d+)/
+
 const rgxModsFromPaths = /.\/..\/mods\/([^\/]+)\//g
 
 export type ParsedCrashText = {
@@ -111,6 +113,17 @@ export function parseHookChains(luaStack: string, logText: string) {
 	}
 
 	return [...chains.values()].sort((a, b) => a.idx - b.idx)
+}
+
+export function parseOOM(engineError: string) {
+	const oomMatch = rgxOom.exec(engineError)
+	if (oomMatch) {
+		const mbSize = 1024 * 1024
+		return {
+			reserved: Math.ceil(parseInt(oomMatch[1]) / mbSize),
+			required: Math.ceil(parseInt(oomMatch[2]) / mbSize)
+		}
+	}
 }
 
 export function parseCrashText(text: string) {
