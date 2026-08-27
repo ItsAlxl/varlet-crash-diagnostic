@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source inline("link");
+@source inline("whitespace-nowrap");
 
 @plugin "@iconify/tailwind4" {
 	prefix: "iconify";

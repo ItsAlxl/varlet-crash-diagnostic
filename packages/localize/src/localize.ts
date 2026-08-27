@@ -198,7 +198,7 @@ function tupleToElement(tuple: TranslatedTuple) {
 	}
 
 	if (attr?.has("code"))
-		element.classList.add("font-mono")
+		element.classList.add("font-mono", "whitespace-nowrap")
 
 	element.innerText = tuple.text
 	return element
