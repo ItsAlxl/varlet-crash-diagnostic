@@ -3,7 +3,7 @@ import localizationJson from "./localization.json"
 type Locale = { locale_name: string, [k: string]: string }
 type TranslatedTuple = { text: string, attributes?: Map<string, string> }
 export type TranslatedParagraph = TranslatedTuple[]
-export type TranslateContext = { [k: string]: string } | undefined
+export type TranslateContext = { [k: string]: string | number } | undefined
 
 const rgxInterpolation = /{{\s*(?:'([^}]+)'|(\S+)\b)([^}]*?)}}/g
 const VALID_LINKS: TranslateContext = {
@@ -144,7 +144,8 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 						tuple.attributes.set(linkSplit[0], linkSplit[1])
 						tuple.text = getLinkUrl(linkSplit[1])
 					} else {
-						tuple.text = (ctx ? ctx[terpContextual] : undefined) ?? ("<missing ctx: " + terpContextual + ">")
+						tuple.text = (ctx ? ctx[terpContextual].toString() : undefined)
+							?? ("<missing ctx: " + terpContextual + ">")
 					}
 				}
 
@@ -182,7 +183,7 @@ export function trText(k: string, ctx: TranslateContext = {}) {
 }
 
 function getLinkUrl(link: string) {
-	return VALID_LINKS![link]
+	return VALID_LINKS![link] as string
 }
 
 function tupleToElement(tuple: TranslatedTuple) {
@@ -198,7 +199,7 @@ function tupleToElement(tuple: TranslatedTuple) {
 	}
 
 	if (attr?.has("code"))
-		element.classList.add("font-mono")
+		element.classList.add("font-mono", "whitespace-nowrap")
 
 	element.innerText = tuple.text
 	return element

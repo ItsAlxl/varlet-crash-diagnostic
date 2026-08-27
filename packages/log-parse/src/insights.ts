@@ -1,5 +1,5 @@
 import { type TranslateContext, trReport, trText } from "@varlet-crash-diagnostic/localize/all"
-import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, type ParsedCallstack, type ParsedCrashText } from "./parse"
 import { version } from "../package.json"
 
 export const INSIGHTS_VERSION = version
@@ -156,8 +156,13 @@ function insightDXGI(message: string) {
 }
 
 function insightOOM(message: string) {
-	if (message.includes("Not enough memory reserved for heap 'lua_heap'"))
-		return "insight_oom_desc"
+	const oomData = parseOOM(message)
+	if (oomData) {
+		return {
+			desc: oomData.reserved < 2048 ? "insight_oom_desc" : "insight_oom_desc_already_max",
+			context: oomData
+		}
+	}
 }
 
 function insightBaseIssue(message: string) {

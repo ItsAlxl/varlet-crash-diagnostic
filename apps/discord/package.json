@@ -1,6 +1,6 @@
 {
 	"name": "@varlet-crash-diagnostic/discord",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"scripts": {
 		"dev": "concurrently --kill-others \"node esbuild.js --dev\" \"node --env-file=.env --watch dist/bot.js\"",
 		"build": "node esbuild.js",
