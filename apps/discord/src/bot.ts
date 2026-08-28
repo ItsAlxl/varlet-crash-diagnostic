@@ -160,7 +160,10 @@ client.on("messageCreate", async (msg) => {
 	if (msgPingsMe(msg)) {
 		sendReportFrom(msg)
 		if (replyRetargeting && msg.reference) {
-			msg.fetchReference().then(sendReportFrom)
+			msg.fetchReference().then(ref => {
+				if (!msgPingsMe(ref))
+					sendReportFrom(ref)
+			})
 		}
 	}
 })
