@@ -107,16 +107,10 @@ async function sendReportFrom(msg: Message<boolean>) {
 		containsContent = true
 
 		embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
-		embedBuilder.setDescription(`${trReport("faq_log_location_desc_full")}
+		embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
+\`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
 
-${trReport("faq_log_location_steam_title")}
-\`${trReport("faq_log_location_steam_path")}\`
-
-${trReport("faq_log_location_xbox_title")}
-\`${trReport("faq_log_location_xbox_path")}\`
-
-${trReport("faq_log_location_proton_title")}
-\`${trReport("faq_log_location_proton_path")}\``)
+${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: "-" + crashTextParse.guid + ".log" }, "en")}`)
 	}
 
 	if (containsContent) {

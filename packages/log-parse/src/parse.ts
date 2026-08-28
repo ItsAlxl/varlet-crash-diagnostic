@@ -133,7 +133,7 @@ export function parseCrashText(text: string) {
 		return {
 			guid: guid,
 			errType: crashMatch[1],
-			message: crashMatch[2]
+			message: crashMatch[2].trim()
 		}
 	}
 	return undefined

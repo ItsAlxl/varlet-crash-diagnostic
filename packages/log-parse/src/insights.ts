@@ -178,7 +178,7 @@ function insightBaseIssue(message: string) {
 	if (mods.includes("DMF") || mods.includes("dmf"))
 		return "insight_dmf_desc"
 
-	if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)"))
+	if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)") || message === "attempt to call a nil value")
 		return "insight_dml_desc"
 }
 
