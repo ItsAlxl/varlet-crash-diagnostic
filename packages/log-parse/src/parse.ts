@@ -1,6 +1,7 @@
 import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
+const rgxDumpName = /crash_dump(?:-\d+){4}(?:.\d+){2}-([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\.dmp/
 const rgxCrashMessage = /-\s*\[([^\]]+)]: ([^-]+)\s*-/
 const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
@@ -8,6 +9,7 @@ const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
 const rgxEngineStack = /<<Callstack>>([\s\S]+?)<<\/Callstack>>/
 const rgxLuaEnd = /(?:<<Script Error>>([\s\S]+?)<<\/Script Error>>)?\s*<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\s\S]+?<<\/Lua Upvalues>>)\s*\[Log end\]/
+const rgxLuaAbruptEnd = /<<Script Error>>([\s\S]+?)<<\/Script Error>>\s*\[Log end\]/
 
 const rgxStackFunctions = /\[\d+\]\s(?:[^\/\n]+?\/)+?([^\/]+?)(?:\.lua)?:\d+:\s*in function ([^\n]+)/g
 const rgxHookNotification = /\[MOD\]\[([^\n]+?)\]\[INFO\] \(hook(?:\S+?)?\): Hooking '(\S+)' from \[([\s\S]+?)\]/g
@@ -42,7 +44,12 @@ export type ParsedHookChain = {
 
 export function findGuid(text: string) {
 	const guidMatch = rgxGuid.exec(text)
-	return guidMatch ? guidMatch[0] : ""
+	return guidMatch ? guidMatch[0] : undefined
+}
+
+export function findDumpGuid(fileName: string) {
+	const dumpMatch = rgxDumpName.exec(fileName)
+	return dumpMatch ? dumpMatch[1] : undefined
 }
 
 function filterToUnique<T>(value: T, index: number, array: T[]) {
@@ -133,7 +140,7 @@ export function parseCrashText(text: string) {
 		return {
 			guid: guid,
 			errType: crashMatch[1],
-			message: crashMatch[2]
+			message: crashMatch[2].trim()
 		}
 	}
 	return undefined
@@ -174,6 +181,11 @@ export function parseCallstack(logText: string) {
 		parseCallstackLua("luaError", 1)
 		parseCallstackLua("luaStack", 2)
 		parseCallstackLua("luaValues", 3)
+	} else {
+		const abruptMatch = rgxLuaAbruptEnd.exec(logText)
+		if (abruptMatch) {
+			p.luaError = abruptMatch[1]
+		}
 	}
 
 	function parseCallstackRegex(key: keyof (ParsedCallstack), regex: RegExp, groupIdx = 1) {

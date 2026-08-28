@@ -1,6 +1,6 @@
 import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
-import { createLogReport, findCrashInsights, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
-import { parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
+import { findDumpGuid, parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { Client, EmbedBuilder, Events, GatewayIntentBits, type APIEmbedField, type Message, type MessageReplyOptions, type PartialMessage } from "discord.js"
 
 const replyRetargeting = process.env.PRIVILEGED_MESSAGE_CONTENT?.toLowerCase() === "true"
@@ -35,26 +35,29 @@ function observeDedupe(history: string[], guid: string) {
 }
 
 function trInsightTerseDesc(ins: InsightResult, markdown = false) {
-	const descTerse = ins.descTerse
-	if (descTerse && descTerse.length === 0) {
-		return ""
-	}
-	return markdown
-		? trMarkdown(descTerse ?? ins.desc, ins.context)
-		: trReport(descTerse ?? ins.desc, ins.context)
+	const descTerse = getDescTerse(ins)
+	if (descTerse)
+		return markdown
+			? trMarkdown(descTerse ?? ins.desc, ins.context, "en")
+			: trReport(descTerse ?? ins.desc, ins.context)
+	return undefined
 }
 
 function embedFieldsFromInsights(insights: InsightResult[]): APIEmbedField[] {
 	return insights.map(ins => {
 		return {
 			name: trReport(ins.title),
-			value: trInsightTerseDesc(ins, true)
+			value: trInsightTerseDesc(ins, true) ?? ""
 		}
-	})
+	}).filter(f => f.value.length > 0)
 }
 
 function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
 	return client.user && msg.mentions.members?.has(client.user.id)
+}
+
+function getLogSuffix(guid: string) {
+	return "-" + guid + ".log"
 }
 
 async function sendReportFrom(msg: Message<boolean>) {
@@ -64,6 +67,8 @@ async function sendReportFrom(msg: Message<boolean>) {
 	const hasCrashReport = crashTextParse !== undefined
 	let reportMismatch = hasCrashReport
 
+	const dumpGuids: string[] = []
+	const logGuids: string[] = []
 	const reports: ({ fileName: string, report: LogReport })[] = []
 	for (const attach of msg.attachments.values()) {
 		const fileName = attach.name
@@ -71,21 +76,46 @@ async function sendReportFrom(msg: Message<boolean>) {
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
 				const logReport = createLogReport(await fileFetch.text(), fileName)
-				if (observeDedupe(dedupeHistoryLogs, logReport.guid)) {
+				const logGuid = logReport.guid
+				logGuids.push(logGuid)
+				if (observeDedupe(dedupeHistoryLogs, logGuid)) {
 					reports.push({
-						fileName: "varlet-" + logReport.guid,
+						fileName: "varlet-" + logGuid,
 						report: logReport
 					})
 
 					if (hasCrashReport && reportMismatch)
-						reportMismatch = logReport.guid !== crashTextParse.guid
+						reportMismatch = logGuid !== crashTextParse.guid
 				}
 			}
+		} else {
+			const dumpGuid = findDumpGuid(fileName)
+			if (dumpGuid)
+				dumpGuids.push(dumpGuid)
 		}
 	}
+	const unmatchedDumpGuids = dumpGuids.filter(guid => logGuids.findIndex(g => g === guid) < 0)
 
-	const embedBuilder = new EmbedBuilder()
 	let containsContent = false
+	const embedBuilder = new EmbedBuilder()
+
+	if (unmatchedDumpGuids.length > 0) {
+		containsContent = true
+		if (reports.length > 0) {
+
+		}
+		embedBuilder.addFields(reports.length > 0
+			? {
+				name: trReport("insight_guid_dumpfile_mismatch_title"),
+				value: trReport("insight_guid_dumpfile_mismatch_desc")
+			}
+			: {
+				name: trReport("insight_guid_dumpfile_useless_title"),
+				value: trReport("insight_guid_dumpfile_useless_desc")
+			}
+		)
+	}
+
 	if (reports.length > 0) {
 		containsContent = true
 
@@ -108,16 +138,10 @@ async function sendReportFrom(msg: Message<boolean>) {
 		containsContent = true
 
 		embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
-		embedBuilder.setDescription(`${trReport("faq_log_location_desc_full")}
+		embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
+\`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
 
-${trReport("faq_log_location_steam_title")}
-\`${trReport("faq_log_location_steam_path")}\`
-
-${trReport("faq_log_location_xbox_title")}
-\`${trReport("faq_log_location_xbox_path")}\`
-
-${trReport("faq_log_location_proton_title")}
-\`${trReport("faq_log_location_proton_path")}\``)
+${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashTextParse.guid) }, "en")}`)
 	}
 
 	if (containsContent) {
@@ -136,7 +160,10 @@ client.on("messageCreate", async (msg) => {
 	if (msgPingsMe(msg)) {
 		sendReportFrom(msg)
 		if (replyRetargeting && msg.reference) {
-			msg.fetchReference().then(sendReportFrom)
+			msg.fetchReference().then(ref => {
+				if (!msgPingsMe(ref))
+					sendReportFrom(ref)
+			})
 		}
 	}
 })

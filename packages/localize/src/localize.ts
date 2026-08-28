@@ -14,6 +14,7 @@ const VALID_LINKS: TranslateContext = {
 	dmf: "https://www.nexusmods.com/warhammer40kdarktide/mods/8",
 	dxgi: "https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide",
 	oom: "https://forums.fatsharkgames.com/t/freezing-when-games-go-on-too-long/93895",
+	faq_logs: "https://dmf-docs.darkti.de/#/faqs?id=where-can-i-find-the-game-logs",
 }
 const L10N = localizationJson as { [loc: string]: Locale }
 
@@ -166,20 +167,20 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 	return results
 }
 
-export function trRaw(k: string, ctx: TranslateContext = {}) {
-	return translate(k, getCurrentLocaleKey(), ctx)
+export function trRaw(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+	return translate(k, locale ?? getCurrentLocaleKey(), ctx)
 }
 
 function rawToText(raw: TranslatedParagraph[]) {
 	return raw.map(p => p.map(t => t.text).join("")).join("\n\n")
 }
 
-export function trReport(k: string, ctx: TranslateContext = {}) {
-	return rawToText(translate(k, "en", ctx))
+export function trText(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+	return rawToText(trRaw(k, ctx, locale))
 }
 
-export function trText(k: string, ctx: TranslateContext = {}) {
-	return rawToText(trRaw(k, ctx))
+export function trReport(k: string, ctx: TranslateContext = {}) {
+	return trText(k, ctx, "en")
 }
 
 function getLinkUrl(link: string) {
@@ -205,8 +206,8 @@ function tupleToElement(tuple: TranslatedTuple) {
 	return element
 }
 
-export function trHtml(k: string, ctx: TranslateContext = {}) {
-	return trRaw(k, ctx).map(p => {
+export function trHtml(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+	return trRaw(k, ctx, locale).map(p => {
 		const div = document.createElement("div")
 		div.replaceChildren(...p.map(tupleToElement))
 		return div
@@ -219,14 +220,24 @@ function tupleToMarkdown(t: TranslatedTuple) {
 	if (attr) {
 		if (attr.get("code"))
 			text = "`" + text + "`"
-		else if (mdSuppressLinks && attr.get("link"))
-			text = "<" + text + ">"
+		else {
+			const linkTarget = attr.get("link")
+			if (linkTarget) {
+				const url = getLinkUrl(linkTarget)
+				if (text === url) {
+					if (mdSuppressLinks)
+						text = "<" + text + ">"
+				} else {
+					text = "[" + text + "](" + url + ")"
+				}
+			}
+		}
 	}
 	return text
 }
 
-export function trMarkdown(k: string, ctx: TranslateContext = {}) {
-	return trRaw(k, ctx).map(p => p.map(tupleToMarkdown).join("")).join("\n\n")
+export function trMarkdown(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+	return trRaw(k, ctx, locale).map(p => p.map(tupleToMarkdown).join("")).join("\n\n")
 }
 
 export function trIntoElement(element: HTMLElement, k: string | undefined = undefined, ctx: TranslateContext = undefined) {

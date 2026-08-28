@@ -112,8 +112,8 @@ function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => 
 }
 
 export function createLogReport(logText: string, fileName: string | undefined): LogReport {
-	let guid = fileName ? findGuid(fileName) : ""
-	const guidFromFileName = guid.length > 0
+	let guid = fileName ? findGuid(fileName) : undefined
+	const guidFromFileName = guid ? guid.length > 0 : false
 	if (!guidFromFileName)
 		guid = findGuid(logText)
 
@@ -137,13 +137,21 @@ ${callstack.luaValues ?? ""}
 ${loadOrder.join("\n")}`.trim()
 
 	return {
-		guid: guid,
+		guid: guid ?? "",
 		loadOrder: loadOrder,
 		callstack: callstack,
 		callstackText: createCallstackText(callstack, trText),
 		insights: insightResults,
 		reportText: reportText
 	}
+}
+
+export function getDescTerse(insight: InsightResult) {
+	const descTerse = insight.descTerse
+	if (descTerse && descTerse.length === 0) {
+		return undefined
+	}
+	return descTerse ?? insight.desc
 }
 
 function filterOutDmf(value: string) {
@@ -170,7 +178,7 @@ function insightBaseIssue(message: string) {
 	if (mods.includes("DMF") || mods.includes("dmf"))
 		return "insight_dmf_desc"
 
-	if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)"))
+	if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)") || message === "attempt to call a nil value")
 		return "insight_dml_desc"
 }
 
@@ -309,7 +317,7 @@ const logInsights: LogInsight[] = [
 							? "insight_hook_chain_desc_both_terse"
 							: (hasSolids
 								? "insight_hook_chain_desc_solid_only"
-								: ""),
+								: "insight_hook_chain_desc_shaky_only_terse"),
 					}
 				}
 			}
