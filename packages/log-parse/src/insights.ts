@@ -146,6 +146,14 @@ ${loadOrder.join("\n")}`.trim()
 	}
 }
 
+export function getDescTerse(insight: InsightResult) {
+	const descTerse = insight.descTerse
+	if (descTerse && descTerse.length === 0) {
+		return undefined
+	}
+	return descTerse ?? insight.desc
+}
+
 function filterOutDmf(value: string) {
 	return value !== "dmf"
 }
@@ -309,7 +317,7 @@ const logInsights: LogInsight[] = [
 							? "insight_hook_chain_desc_both_terse"
 							: (hasSolids
 								? "insight_hook_chain_desc_solid_only"
-								: ""),
+								: "insight_hook_chain_desc_shaky_only_terse"),
 					}
 				}
 			}

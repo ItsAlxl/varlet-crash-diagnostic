@@ -1,5 +1,5 @@
 import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
-import { createLogReport, findCrashInsights, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
+import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { Client, EmbedBuilder, Events, GatewayIntentBits, type APIEmbedField, type Message, type MessageReplyOptions, type PartialMessage } from "discord.js"
 
@@ -35,22 +35,21 @@ function observeDedupe(history: string[], guid: string) {
 }
 
 function trInsightTerseDesc(ins: InsightResult, markdown = false) {
-	const descTerse = ins.descTerse
-	if (descTerse && descTerse.length === 0) {
-		return ""
-	}
-	return markdown
-		? trMarkdown(descTerse ?? ins.desc, ins.context)
-		: trReport(descTerse ?? ins.desc, ins.context)
+	const descTerse = getDescTerse(ins)
+	if (descTerse)
+		return markdown
+			? trMarkdown(descTerse ?? ins.desc, ins.context)
+			: trReport(descTerse ?? ins.desc, ins.context)
+	return undefined
 }
 
 function embedFieldsFromInsights(insights: InsightResult[]): APIEmbedField[] {
 	return insights.map(ins => {
 		return {
 			name: trReport(ins.title),
-			value: trInsightTerseDesc(ins, true)
+			value: trInsightTerseDesc(ins, true) ?? ""
 		}
-	})
+	}).filter(f => f.value.length > 0)
 }
 
 function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
