@@ -9,6 +9,7 @@ const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
 const rgxEngineStack = /<<Callstack>>([\s\S]+?)<<\/Callstack>>/
 const rgxLuaEnd = /(?:<<Script Error>>([\s\S]+?)<<\/Script Error>>)?\s*<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\s\S]+?<<\/Lua Upvalues>>)\s*\[Log end\]/
+const rgxLuaAbruptEnd = /<<Script Error>>([\s\S]+?)<<\/Script Error>>\s*\[Log end\]/
 
 const rgxStackFunctions = /\[\d+\]\s(?:[^\/\n]+?\/)+?([^\/]+?)(?:\.lua)?:\d+:\s*in function ([^\n]+)/g
 const rgxHookNotification = /\[MOD\]\[([^\n]+?)\]\[INFO\] \(hook(?:\S+?)?\): Hooking '(\S+)' from \[([\s\S]+?)\]/g
@@ -180,6 +181,11 @@ export function parseCallstack(logText: string) {
 		parseCallstackLua("luaError", 1)
 		parseCallstackLua("luaStack", 2)
 		parseCallstackLua("luaValues", 3)
+	} else {
+		const abruptMatch = rgxLuaAbruptEnd.exec(logText)
+		if (abruptMatch) {
+			p.luaError = abruptMatch[1]
+		}
 	}
 
 	function parseCallstackRegex(key: keyof (ParsedCallstack), regex: RegExp, groupIdx = 1) {
