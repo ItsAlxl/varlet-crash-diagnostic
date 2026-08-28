@@ -214,8 +214,13 @@ export function trHtml(k: string, ctx: TranslateContext = {}, locale: string | u
 	})
 }
 
+function mdSuppressLink(url: string) {
+	return "<" + url + ">"
+}
+
 function tupleToMarkdown(t: TranslatedTuple) {
 	let text = t.text
+
 	const attr = t.attributes
 	if (attr) {
 		if (attr.get("code"))
@@ -226,13 +231,14 @@ function tupleToMarkdown(t: TranslatedTuple) {
 				const url = getLinkUrl(linkTarget)
 				if (text === url) {
 					if (mdSuppressLinks)
-						text = "<" + text + ">"
+						text = mdSuppressLink(text)
 				} else {
-					text = "[" + text + "](" + url + ")"
+					text = "[" + text + "](" + (mdSuppressLinks ? mdSuppressLink(url) : url) + ")"
 				}
 			}
 		}
 	}
+
 	return text
 }
 
