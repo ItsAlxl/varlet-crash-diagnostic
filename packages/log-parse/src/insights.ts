@@ -112,8 +112,8 @@ function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => 
 }
 
 export function createLogReport(logText: string, fileName: string | undefined): LogReport {
-	let guid = fileName ? findGuid(fileName) : ""
-	const guidFromFileName = guid.length > 0
+	let guid = fileName ? findGuid(fileName) : undefined
+	const guidFromFileName = guid ? guid.length > 0 : false
 	if (!guidFromFileName)
 		guid = findGuid(logText)
 
@@ -137,7 +137,7 @@ ${callstack.luaValues ?? ""}
 ${loadOrder.join("\n")}`.trim()
 
 	return {
-		guid: guid,
+		guid: guid ?? "",
 		loadOrder: loadOrder,
 		callstack: callstack,
 		callstackText: createCallstackText(callstack, trText),

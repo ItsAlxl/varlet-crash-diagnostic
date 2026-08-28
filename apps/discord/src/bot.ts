@@ -1,6 +1,6 @@
 import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
-import { parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { findDumpGuid, parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { Client, EmbedBuilder, Events, GatewayIntentBits, type APIEmbedField, type Message, type MessageReplyOptions, type PartialMessage } from "discord.js"
 
 const replyRetargeting = process.env.PRIVILEGED_MESSAGE_CONTENT?.toLowerCase() === "true"
@@ -38,7 +38,7 @@ function trInsightTerseDesc(ins: InsightResult, markdown = false) {
 	const descTerse = getDescTerse(ins)
 	if (descTerse)
 		return markdown
-			? trMarkdown(descTerse ?? ins.desc, ins.context)
+			? trMarkdown(descTerse ?? ins.desc, ins.context, "en")
 			: trReport(descTerse ?? ins.desc, ins.context)
 	return undefined
 }
@@ -56,6 +56,10 @@ function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
 	return client.user && msg.mentions.members?.has(client.user.id)
 }
 
+function getLogSuffix(guid: string) {
+	return "-" + guid + ".log"
+}
+
 async function sendReportFrom(msg: Message<boolean>) {
 	const response: MessageReplyOptions = {}
 
@@ -63,6 +67,8 @@ async function sendReportFrom(msg: Message<boolean>) {
 	const hasCrashReport = crashTextParse !== undefined
 	let reportMismatch = hasCrashReport
 
+	const dumpGuids: string[] = []
+	const logGuids: string[] = []
 	const reports: ({ fileName: string, report: LogReport })[] = []
 	for (const attach of msg.attachments.values()) {
 		const fileName = attach.name
@@ -70,21 +76,46 @@ async function sendReportFrom(msg: Message<boolean>) {
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
 				const logReport = createLogReport(await fileFetch.text(), fileName)
-				if (observeDedupe(dedupeHistoryLogs, logReport.guid)) {
+				const logGuid = logReport.guid
+				logGuids.push(logGuid)
+				if (observeDedupe(dedupeHistoryLogs, logGuid)) {
 					reports.push({
-						fileName: "varlet-" + logReport.guid,
+						fileName: "varlet-" + logGuid,
 						report: logReport
 					})
 
 					if (hasCrashReport && reportMismatch)
-						reportMismatch = logReport.guid !== crashTextParse.guid
+						reportMismatch = logGuid !== crashTextParse.guid
 				}
 			}
+		} else {
+			const dumpGuid = findDumpGuid(fileName)
+			if (dumpGuid)
+				dumpGuids.push(dumpGuid)
 		}
 	}
+	const unmatchedDumpGuids = dumpGuids.filter(guid => logGuids.findIndex(g => g === guid) < 0)
 
-	const embedBuilder = new EmbedBuilder()
 	let containsContent = false
+	const embedBuilder = new EmbedBuilder()
+
+	if (unmatchedDumpGuids.length > 0) {
+		containsContent = true
+		if (reports.length > 0) {
+
+		}
+		embedBuilder.addFields(reports.length > 0
+			? {
+				name: trReport("insight_guid_dumpfile_mismatch_title"),
+				value: trReport("insight_guid_dumpfile_mismatch_desc")
+			}
+			: {
+				name: trReport("insight_guid_dumpfile_useless_title"),
+				value: trReport("insight_guid_dumpfile_useless_desc")
+			}
+		)
+	}
+
 	if (reports.length > 0) {
 		containsContent = true
 
@@ -110,7 +141,7 @@ async function sendReportFrom(msg: Message<boolean>) {
 		embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
 \`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
 
-${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: "-" + crashTextParse.guid + ".log" }, "en")}`)
+${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashTextParse.guid) }, "en")}`)
 	}
 
 	if (containsContent) {

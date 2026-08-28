@@ -175,12 +175,12 @@ function rawToText(raw: TranslatedParagraph[]) {
 	return raw.map(p => p.map(t => t.text).join("")).join("\n\n")
 }
 
-export function trReport(k: string, ctx: TranslateContext = {}) {
-	return rawToText(translate(k, "en", ctx))
-}
-
 export function trText(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
 	return rawToText(trRaw(k, ctx, locale))
+}
+
+export function trReport(k: string, ctx: TranslateContext = {}) {
+	return trText(k, ctx, "en")
 }
 
 function getLinkUrl(link: string) {

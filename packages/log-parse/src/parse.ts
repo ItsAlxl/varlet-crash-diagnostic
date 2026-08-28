@@ -1,6 +1,7 @@
 import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
+const rgxDumpName = /crash_dump(?:-\d+){4}(?:.\d+){2}-([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\.dmp/
 const rgxCrashMessage = /-\s*\[([^\]]+)]: ([^-]+)\s*-/
 const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
@@ -42,7 +43,12 @@ export type ParsedHookChain = {
 
 export function findGuid(text: string) {
 	const guidMatch = rgxGuid.exec(text)
-	return guidMatch ? guidMatch[0] : ""
+	return guidMatch ? guidMatch[0] : undefined
+}
+
+export function findDumpGuid(fileName: string) {
+	const dumpMatch = rgxDumpName.exec(fileName)
+	return dumpMatch ? dumpMatch[1] : undefined
 }
 
 function filterToUnique<T>(value: T, index: number, array: T[]) {
