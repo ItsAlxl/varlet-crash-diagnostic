@@ -184,11 +184,11 @@ function insightBaseIssue(message: string) {
 
 function insightCrashMessageMod(message: string, isInput = false) {
 	const mods = findModsFromPaths(message).filter(filterOutDmf)
-	const numMods = mods.length
-	if (numMods > 0) {
+	const modName = mods.length > 0 ? mods[0] : undefined
+	if (modName) {
 		return {
 			desc: isInput ? "insight_crash_message_desc_input" : "insight_crash_message_desc_lone",
-			context: { modName: mods[0] }
+			context: { modName: modName }
 		}
 	}
 }
