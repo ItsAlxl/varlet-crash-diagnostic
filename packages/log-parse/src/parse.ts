@@ -2,7 +2,7 @@ import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
 const rgxDumpName = /crash_dump(?:-\d+){4}(?:.\d+){2}-([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\.dmp/
-const rgxCrashMessage = /-\s*\[([^\]]+)]: ([^-]+)\s*-/
+const rgxCrashMessage = /GUID: ([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\s*Log File:\s*Info Type:\s*?-{47}\s*\[([^\]]+)\]: ([^-]+)*-{47}\s*\[Crash Link\]:\s*crashify:\/\/\1/
 const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
@@ -138,9 +138,9 @@ export function parseCrashText(text: string) {
 	const guid = findGuid(text)
 	if (crashMatch && guid) {
 		return {
-			guid: guid,
-			errType: crashMatch[1],
-			message: crashMatch[2].trim()
+			guid: crashMatch[1],
+			errType: crashMatch[2],
+			message: crashMatch[3].trim()
 		}
 	}
 	return undefined

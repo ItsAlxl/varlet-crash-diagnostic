@@ -10,7 +10,7 @@
 		"faq_log_location_title": "Where are console logs located?",
 		"faq_log_location_desc": "The directory that contains your console logs is different per platform.",
 		"faq_log_location_bot_prefix": "Console logs contain a lot more information than the crash message. If you're playing through Steam on Windows, your console log can be found at:",
-		"faq_log_location_bot_suffix": "Here are the {{'log locations for other plaftorms' link=faq_logs}}. Ping me again with the log whose name ends in {{logNameEnd code}}",
+		"faq_log_location_bot_suffix": "Here are the {{'log locations for other plaftorms' link=faq_logs}}. Ping me again with the log whose name ends in {{logNameEnd code}} for further assistance.",
 		"faq_log_location_steam_title": "Steam (Windows):",
 		"faq_log_location_steam_path": "%AppData%/Fatshark/Darktide/console_logs/",
 		"faq_log_location_xbox_title": "Xbox / Microsoft Store:",

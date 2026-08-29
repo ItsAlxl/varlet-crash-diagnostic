@@ -42,7 +42,9 @@ Deploying the web app to a production environment only requires serving the cont
 
 The bot parses logs and crash text when pinged. Ping it in a message with logs attached and it will respond with a readout of insights and an attached report. You can also get the bot to respond to an already-sent message by editing the message text to ping the bot.
 
-Alternatively, you can ping the bot in a reply to a message that has logs attached, and the bot will respond to the original message. However, the content of messages that do not ping the bot is [considered privileged](https://support-dev.discord.com/hc/en-us/articles/6205754771351-How-do-I-get-Privileged-Intents-for-my-bot), so this is an optional feature that has to be enabled with the environment variable `PRIVILEGED_MESSAGE_CONTENT=true`
+Alternatively, you can ping the bot in a reply to a message that has logs attached, and the bot will respond to the original message (as long as the original message did not ping the bot). However, the content of messages that do not ping the bot is [considered privileged](https://support-dev.discord.com/hc/en-us/articles/6205754771351-How-do-I-get-Privileged-Intents-for-my-bot), so this is an optional feature that has to be enabled with the environment variable `REPLY_RETARGETING=true`
+
+If you want the bot to automatically respond without being pinged to any message that contains pasted crash text or crash dumps without any accompanying console logs, you can set the environment variable `AUTO_ASK_FOR_LOGS=true`; note that this requires privileged message content permission like `REPLY_RETARGETING`.
 
 Running the bot requires providing a valid Discord bot auth token, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_TOKEN=your-token-here`
 

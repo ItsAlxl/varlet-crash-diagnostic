@@ -3,9 +3,11 @@ import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, t
 import { findDumpGuid, parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { Client, EmbedBuilder, Events, GatewayIntentBits, type APIEmbedField, type Message, type MessageReplyOptions, type PartialMessage } from "discord.js"
 
-const replyRetargeting = process.env.PRIVILEGED_MESSAGE_CONTENT?.toLowerCase() === "true"
+const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
+const autoAskForLogs = process.env.AUTO_ASK_FOR_LOGS?.toLowerCase() === "true"
+
 const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
-if (replyRetargeting)
+if (replyRetargeting || autoAskForLogs)
 	intents.push(GatewayIntentBits.MessageContent)
 const client = new Client({ intents: intents })
 
@@ -22,15 +24,23 @@ client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`)
 })
 
-function observeDedupe(history: string[], guid: string) {
-	if (history.includes(guid)) {
-		return false
-	}
+function isDupe(history: string[], guid: string) {
+	return history.includes(guid)
+}
 
+function rememberDupe(history: string[], guid: string) {
 	history.push(guid)
 	if (history.length > dedupeHistoryMax) {
 		history.shift()
 	}
+}
+
+function observeDedupe(history: string[], guid: string) {
+	if (isDupe(history, guid)) {
+		return false
+	}
+
+	rememberDupe(history, guid)
 	return true
 }
 
@@ -53,16 +63,17 @@ function embedFieldsFromInsights(insights: InsightResult[]): APIEmbedField[] {
 }
 
 function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
-	return client.user && msg.mentions.members?.has(client.user.id)
+	return (client.user && msg.mentions.members?.has(client.user.id)) ?? false
 }
 
 function getLogSuffix(guid: string) {
 	return "-" + guid + ".log"
 }
 
-async function sendReportFrom(msg: Message<boolean>) {
+async function sendReportFrom(msg: Message<boolean>, replyRetargeted = false) {
 	const response: MessageReplyOptions = {}
 
+	const isPing = msgPingsMe(msg) || replyRetargeted
 	const crashTextParse = parseCrashText(msg.content)
 	const hasCrashReport = crashTextParse !== undefined
 	let reportMismatch = hasCrashReport
@@ -78,7 +89,10 @@ async function sendReportFrom(msg: Message<boolean>) {
 				const logReport = createLogReport(await fileFetch.text(), fileName)
 				const logGuid = logReport.guid
 				logGuids.push(logGuid)
-				if (observeDedupe(dedupeHistoryLogs, logGuid)) {
+				if (!isDupe(dedupeHistoryLogs, logGuid)) {
+					if (isPing)
+						rememberDupe(dedupeHistoryLogs, logGuid)
+
 					reports.push({
 						fileName: "varlet-" + logGuid,
 						report: logReport
@@ -98,12 +112,8 @@ async function sendReportFrom(msg: Message<boolean>) {
 
 	let containsContent = false
 	const embedBuilder = new EmbedBuilder()
-
 	if (unmatchedDumpGuids.length > 0) {
-		containsContent = true
-		if (reports.length > 0) {
-
-		}
+		containsContent ||= autoAskForLogs && reports.length === 0 || isPing
 		embedBuilder.addFields(reports.length > 0
 			? {
 				name: trReport("insight_guid_dumpfile_mismatch_title"),
@@ -117,7 +127,7 @@ async function sendReportFrom(msg: Message<boolean>) {
 	}
 
 	if (reports.length > 0) {
-		containsContent = true
+		containsContent ||= isPing
 
 		if (reportMismatch)
 			embedBuilder.addFields({
@@ -134,8 +144,9 @@ async function sendReportFrom(msg: Message<boolean>) {
 				title: r.fileName
 			}
 		})
-	} else if (crashTextParse && observeDedupe(dedupeHistoryPastes, crashTextParse.guid)) {
-		containsContent = true
+	} else if (crashTextParse && (autoAskForLogs || isPing) && observeDedupe(dedupeHistoryPastes, crashTextParse.guid)) {
+		containsContent ||= true
+		console.log("hi")
 
 		embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
 		embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
@@ -157,14 +168,12 @@ client.on("messageCreate", async (msg) => {
 	if (msg.author === client.user)
 		return
 
-	if (msgPingsMe(msg)) {
-		sendReportFrom(msg)
-		if (replyRetargeting && msg.reference) {
-			msg.fetchReference().then(ref => {
-				if (!msgPingsMe(ref))
-					sendReportFrom(ref)
-			})
-		}
+	sendReportFrom(msg)
+	if (replyRetargeting && msg.reference) {
+		msg.fetchReference().then(ref => {
+			if (!msgPingsMe(ref))
+				sendReportFrom(ref, true)
+		})
 	}
 })
 
