@@ -2,6 +2,7 @@ import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagn
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { findDumpGuid, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { Client, EmbedBuilder, Events, GatewayIntentBits, MessageReferenceType, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot, type PartialMessage } from "discord.js"
+import { getDupedLog, getDupedPaste, rememberDupeLog, rememberDupePaste, type DedupeRecord } from "./dedupe"
 
 type AttachmentReport = {
 	fileName: string,
@@ -14,11 +15,6 @@ type ResponseComponents = {
 	dumpGuids?: string[],
 }
 
-type DedupeRecord = {
-	guid: string,
-	responseReference?: string,
-}
-
 const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
 const autoAskForLogs = process.env.AUTO_ASK_FOR_LOGS?.toLowerCase() === "true"
 
@@ -26,10 +22,6 @@ const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 if (replyRetargeting || autoAskForLogs)
 	intents.push(GatewayIntentBits.MessageContent)
 const client = new Client({ intents: intents })
-
-const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
-const dedupeHistoryLogs: DedupeRecord[] = []
-const dedupeHistoryPastes: DedupeRecord[] = []
 
 configureLocalization({
 	browser: false,
@@ -39,35 +31,6 @@ configureLocalization({
 client.once(Events.ClientReady, (readyClient) => {
 	console.log(readyClient.user.tag, "online o7")
 })
-
-function getDupe(history: DedupeRecord[], guid: string) {
-	return history.find(r => r.guid === guid)
-}
-
-function rememberDupe(history: DedupeRecord[], guid: string) {
-	const record: DedupeRecord = { guid: guid }
-	history.push(record)
-	if (history.length > dedupeHistoryMax) {
-		history.shift()
-	}
-	return record
-}
-
-function rememberDupeLog(report: LogReport) {
-	return rememberDupe(dedupeHistoryLogs, report.guid)
-}
-
-function getDupedLog(report: LogReport) {
-	return getDupe(dedupeHistoryLogs, report.guid)
-}
-
-function rememberDupePaste(report: ParsedCrashText) {
-	return rememberDupe(dedupeHistoryPastes, report.guid)
-}
-
-function getDupedPaste(report: ParsedCrashText) {
-	return getDupe(dedupeHistoryPastes, report.guid)
-}
 
 function trInsightTerseDesc(ins: InsightResult, markdown = false) {
 	const descTerse = getDescTerse(ins)
@@ -171,13 +134,13 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, replyRetarg
 
 		const freshReports: AttachmentReport[] = []
 		for (const r of reports) {
-			const dupe = getDupedLog(r.report)
+			const dupe = getDupedLog(r.report.guid)
 			if (dupe) {
 				if (dupe.responseReference)
 					referencedDupes.push(dupe.responseReference)
 			} else {
 				freshReports.push(r)
-				newDedupeRecords.push(rememberDupeLog(r.report))
+				newDedupeRecords.push(rememberDupeLog(r.report.guid))
 			}
 		}
 
@@ -198,12 +161,12 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, replyRetarg
 	}
 
 	if (respondToCrashText && crashTextParse && (autoAskForLogs || isPing)) {
-		const dupe = getDupedPaste(crashTextParse)
+		const dupe = getDupedPaste(crashTextParse.guid)
 		if (dupe) {
 			if (dupe.responseReference)
 				referencedDupes.push(dupe.responseReference)
 		} else {
-			newDedupeRecords.push(rememberDupePaste(crashTextParse))
+			newDedupeRecords.push(rememberDupePaste(crashTextParse.guid))
 			embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
 			embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
 \`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
