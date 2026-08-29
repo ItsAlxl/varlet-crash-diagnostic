@@ -9,10 +9,14 @@ type AttachmentReport = {
 }
 
 type ResponseComponents = {
-	isPing: boolean,
 	crashTextParse?: ParsedCrashText,
 	reports?: AttachmentReport[],
 	dumpGuids?: string[],
+}
+
+type DedupeRecord = {
+	guid: string,
+	responseReference?: string,
 }
 
 const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
@@ -24,8 +28,8 @@ if (replyRetargeting || autoAskForLogs)
 const client = new Client({ intents: intents })
 
 const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
-const dedupeHistoryLogs: string[] = []
-const dedupeHistoryPastes: string[] = []
+const dedupeHistoryLogs: DedupeRecord[] = []
+const dedupeHistoryPastes: DedupeRecord[] = []
 
 configureLocalization({
 	browser: false,
@@ -36,24 +40,33 @@ client.once(Events.ClientReady, (readyClient) => {
 	console.log(readyClient.user.tag, "online o7")
 })
 
-function isDupe(history: string[], guid: string) {
-	return history.includes(guid)
+function getDupe(history: DedupeRecord[], guid: string) {
+	return history.find(r => r.guid === guid)
 }
 
-function rememberDupe(history: string[], guid: string) {
-	history.push(guid)
+function rememberDupe(history: DedupeRecord[], guid: string) {
+	const record: DedupeRecord = { guid: guid }
+	history.push(record)
 	if (history.length > dedupeHistoryMax) {
 		history.shift()
 	}
+	return record
 }
 
-function observeDedupe(history: string[], guid: string) {
-	if (isDupe(history, guid)) {
-		return false
-	}
+function rememberDupeLog(report: LogReport) {
+	return rememberDupe(dedupeHistoryLogs, report.guid)
+}
 
-	rememberDupe(history, guid)
-	return true
+function getDupedLog(report: LogReport) {
+	return getDupe(dedupeHistoryLogs, report.guid)
+}
+
+function rememberDupePaste(report: ParsedCrashText) {
+	return rememberDupe(dedupeHistoryPastes, report.guid)
+}
+
+function getDupedPaste(report: ParsedCrashText) {
+	return getDupe(dedupeHistoryPastes, report.guid)
 }
 
 function trInsightTerseDesc(ins: InsightResult, markdown = false) {
@@ -82,9 +95,8 @@ function getLogSuffix(guid: string) {
 	return "-" + guid + ".log"
 }
 
-async function parseMessage(msg: Message | MessageSnapshot, replyRetargeted = false) {
+async function parseMessage(msg: Message | MessageSnapshot) {
 	const components: ResponseComponents = {
-		isPing: msgPingsMe(msg) || replyRetargeted,
 		crashTextParse: parseCrashText(msg.content),
 	}
 
@@ -122,10 +134,10 @@ async function parseMessage(msg: Message | MessageSnapshot, replyRetargeted = fa
 async function sendReportFrom(msg: Message | MessageSnapshot, replyRetargeted = false, replyTo: Message | undefined = undefined) {
 	const response: MessageReplyOptions = {}
 
-	const components = await parseMessage(msg, replyRetargeted)
+	const components = await parseMessage(msg)
 	const reports = components.reports
 	const crashTextParse = components.crashTextParse
-	const isPing = components.isPing
+	const isPing = msgPingsMe(msg) || replyRetargeted
 
 	const embedBuilder = new EmbedBuilder()
 
@@ -145,6 +157,9 @@ async function sendReportFrom(msg: Message | MessageSnapshot, replyRetargeted = 
 		}
 	}
 
+	const newDedupeRecords: DedupeRecord[] = []
+	const referencedDupes: string[] = []
+
 	let respondToCrashText = true
 	if (reports && isPing) {
 		if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
@@ -156,8 +171,14 @@ async function sendReportFrom(msg: Message | MessageSnapshot, replyRetargeted = 
 
 		const freshReports: AttachmentReport[] = []
 		for (const r of reports) {
-			if (!isDupe(dedupeHistoryLogs, r.report.guid))
+			const dupe = getDupedLog(r.report)
+			if (dupe) {
+				if (dupe.responseReference)
+					referencedDupes.push(dupe.responseReference)
+			} else {
 				freshReports.push(r)
+				newDedupeRecords.push(rememberDupeLog(r.report))
+			}
 		}
 
 		if (freshReports.length > 0) {
@@ -165,10 +186,6 @@ async function sendReportFrom(msg: Message | MessageSnapshot, replyRetargeted = 
 
 			if (freshReports.length === 1)
 				embedBuilder.addFields(...embedFieldsFromInsights(freshReports[0].report.insights))
-
-			for (const r of freshReports) {
-				rememberDupe(dedupeHistoryLogs, r.report.guid)
-			}
 
 			response.files = freshReports.map(r => {
 				return {
@@ -180,12 +197,26 @@ async function sendReportFrom(msg: Message | MessageSnapshot, replyRetargeted = 
 		}
 	}
 
-	if (respondToCrashText && crashTextParse && (autoAskForLogs || isPing) && !isDupe(dedupeHistoryPastes, crashTextParse.guid)) {
-		embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
-		embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
+	if (respondToCrashText && crashTextParse && (autoAskForLogs || isPing)) {
+		const dupe = getDupedPaste(crashTextParse)
+		if (dupe) {
+			if (dupe.responseReference)
+				referencedDupes.push(dupe.responseReference)
+		} else {
+			newDedupeRecords.push(rememberDupePaste(crashTextParse))
+			embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
+			embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
 \`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
 
 ${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashTextParse.guid) }, "en")}`)
+		}
+	}
+
+	if (referencedDupes.length > 0) {
+		embedBuilder.addFields({
+			name: trReport("bot_deduped_title"),
+			value: trReport("bot_deduped_desc", { dedupeLinks: referencedDupes.join(" ") })
+		})
 	}
 
 	if (embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) {
@@ -194,7 +225,11 @@ ${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashText
 		embedBuilder.setColor("#782312")
 
 		response.embeds = [embedBuilder];
-		(replyTo ?? msg).reply!(response)
+		(replyTo ?? msg).reply!(response).then(sentMsg => {
+			for (const r of newDedupeRecords) {
+				r.responseReference = sentMsg.url
+			}
+		})
 	}
 }
 

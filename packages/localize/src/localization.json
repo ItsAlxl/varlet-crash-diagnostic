@@ -79,6 +79,8 @@
 		"insight_none_desc_paste": "Specify the console log directory above to get more information.",
 		"insight_none_desc_paste_bot": "Ping me with a specific console log attached.",
 		"insight_none_desc_file": "Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit.",
+		"bot_deduped_title": "Duplicate of recent query",
+		"bot_deduped_desc": "I've already recently responded: {{dedupeLinks}}",
 		"hint_or": "OR",
 		"hint_no_uploads": "Note: no files are actually uploaded."
 	}
