@@ -1,7 +1,7 @@
 import { configureLocalization, trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { findDumpGuid, parseCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
-import { Client, EmbedBuilder, Events, GatewayIntentBits, type APIEmbedField, type Message, type MessageReplyOptions, type PartialMessage } from "discord.js"
+import { Client, EmbedBuilder, Events, GatewayIntentBits, MessageReferenceType, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot, type PartialMessage } from "discord.js"
 
 const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
 const autoAskForLogs = process.env.AUTO_ASK_FOR_LOGS?.toLowerCase() === "true"
@@ -21,7 +21,7 @@ configureLocalization({
 })
 
 client.once(Events.ClientReady, (readyClient) => {
-	console.log(`Ready! Logged in as ${readyClient.user.tag}`)
+	console.log(readyClient.user.tag, "online o7")
 })
 
 function isDupe(history: string[], guid: string) {
@@ -62,7 +62,7 @@ function embedFieldsFromInsights(insights: InsightResult[]): APIEmbedField[] {
 	}).filter(f => f.value.length > 0)
 }
 
-function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean>) {
+function msgPingsMe(msg: Message<boolean> | PartialMessage<boolean> | MessageSnapshot) {
 	return (client.user && msg.mentions.members?.has(client.user.id)) ?? false
 }
 
@@ -70,7 +70,7 @@ function getLogSuffix(guid: string) {
 	return "-" + guid + ".log"
 }
 
-async function sendReportFrom(msg: Message<boolean>, replyRetargeted = false) {
+async function sendReportFrom(msg: Message<boolean> | MessageSnapshot, replyRetargeted = false, replyTo: Message<boolean> | undefined = undefined) {
 	const response: MessageReplyOptions = {}
 
 	const isPing = msgPingsMe(msg) || replyRetargeted
@@ -146,7 +146,6 @@ async function sendReportFrom(msg: Message<boolean>, replyRetargeted = false) {
 		})
 	} else if (crashTextParse && (autoAskForLogs || isPing) && observeDedupe(dedupeHistoryPastes, crashTextParse.guid)) {
 		containsContent ||= true
-		console.log("hi")
 
 		embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
 		embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
@@ -159,8 +158,9 @@ ${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashText
 		embedBuilder.setURL("https://itsalxl.github.io/varlet-crash-diagnostic")
 		embedBuilder.setTitle(trReport("varlet_tool_title"))
 		embedBuilder.setColor("#782312")
-		response.embeds = [embedBuilder]
-		msg.reply(response)
+
+		response.embeds = [embedBuilder];
+		(replyTo ?? msg).reply!(response)
 	}
 }
 
@@ -169,11 +169,17 @@ client.on("messageCreate", async (msg) => {
 		return
 
 	sendReportFrom(msg)
-	if (replyRetargeting && msg.reference) {
-		msg.fetchReference().then(ref => {
-			if (!msgPingsMe(ref))
-				sendReportFrom(ref, true)
-		})
+	if (replyRetargeting) {
+		const ref = msg.reference
+		if (ref && ref.type === MessageReferenceType.Default) {
+			msg.fetchReference().then(refMsg => {
+				if (!msgPingsMe(refMsg))
+					sendReportFrom(refMsg, true)
+			})
+		}
+	}
+	for (const snap of msg.messageSnapshots) {
+		sendReportFrom(snap[1], false, msg)
 	}
 })
 
