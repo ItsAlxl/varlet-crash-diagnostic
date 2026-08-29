@@ -131,7 +131,7 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 	return components
 }
 
-async function sendReportFrom(msg: Message | MessageSnapshot, replyRetargeted = false, replyTo: Message | undefined = undefined) {
+async function sendReportFromMessage(msg: Message | MessageSnapshot, replyRetargeted = false, replyTo: Message | undefined = undefined) {
 	const response: MessageReplyOptions = {}
 
 	const components = await parseMessage(msg)
@@ -233,31 +233,39 @@ ${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashText
 	}
 }
 
-client.on("messageCreate", async (msg) => {
+function sendReportOn(message: Message, replyRetargeted = false) {
+	sendReportFromMessage(message, replyRetargeted)
+	for (const snap of message.messageSnapshots) {
+		sendReportFromMessage(snap[1], replyRetargeted, message)
+	}
+}
+
+client.on(Events.MessageCreate, async (msg) => {
 	if (msg.author === client.user)
 		return
 
-	sendReportFrom(msg)
+	let responded = false
 	if (replyRetargeting) {
 		const ref = msg.reference
 		if (ref && ref.type === MessageReferenceType.Default) {
-			msg.fetchReference().then(refMsg => {
-				if (!msgPingsMe(refMsg))
-					sendReportFrom(refMsg, true)
-			})
+			const refMsg = await msg.fetchReference()
+			if (!msgPingsMe(refMsg)) {
+				sendReportOn(refMsg, true)
+				responded = true
+			}
 		}
 	}
-	for (const snap of msg.messageSnapshots) {
-		sendReportFrom(snap[1], false, msg)
-	}
+
+	if (!responded)
+		sendReportOn(msg)
 })
 
-client.on("messageUpdate", async (oldMsg, newMsg) => {
+client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
 	if (newMsg.author === client.user)
 		return
 
-	if (!msgPingsMe(oldMsg))
-		sendReportFrom(newMsg)
+	if (!msgPingsMe(oldMsg) && msgPingsMe(newMsg))
+		sendReportOn(newMsg)
 })
 
 client.login(process.env.DISCORD_TOKEN)
