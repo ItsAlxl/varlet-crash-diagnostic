@@ -56,7 +56,7 @@ Both `npm run dev` and `npm run bot` read environment variables from a file name
 
 ## Localization
 
-Localizations are found in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, its `en` value is used as a fallback. Note that the `bot_command_*` values must be 32 characters or less; this is a limitation from Discord.
+Localizations are found in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, its `en` value is used as a fallback. Note that the `bot_cmd_*_title` values must be 32 characters or less; this is a limitation from Discord.
 
 Two forms of interpolation are supported:
 

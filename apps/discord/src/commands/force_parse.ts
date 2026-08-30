@@ -1,4 +1,4 @@
-import { ApplicationCommandType, ContextMenuCommandBuilder, MessageFlags, type MessageContextMenuCommandInteraction } from "discord.js"
+import { ApplicationCommandType, ContextMenuCommandBuilder, type MessageContextMenuCommandInteraction } from "discord.js"
 import { sendReportOn } from "../messenger"
 
 export default {
@@ -6,9 +6,8 @@ export default {
 		.setName("force_parse")
 		.setType(ApplicationCommandType.Message)
 		.setDefaultMemberPermissions(0),
+	responseAlias: "parse",
 	async execute(interaction: MessageContextMenuCommandInteraction) {
-		interaction.reply({ content: "Parsing...", flags: MessageFlags.Ephemeral })
-		await sendReportOn(interaction.targetMessage, true, true)
-		interaction.editReply("Parsed :)")
+		return await sendReportOn(interaction.targetMessage, true, true)
 	}
 }

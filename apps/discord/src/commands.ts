@@ -1,23 +1,38 @@
-import { Locale, REST, Routes, type ContextMenuCommandBuilder, type MessageContextMenuCommandInteraction } from "discord.js"
+import { Locale, MessageFlags, REST, Routes, type ContextMenuCommandBuilder, type MessageContextMenuCommandInteraction } from "discord.js"
 import { getBestFitLocale, trText } from "@varlet-crash-diagnostic/localize/all"
 import cmdParse from "./commands/parse"
 import cmdForceParse from "./commands/force_parse"
+import cmdAskForLogs from "./commands/ask_for_logs"
 
+type CommandDefinition = {
+	data: ContextMenuCommandBuilder,
+	execute(interaction: MessageContextMenuCommandInteraction): Promise<boolean>,
+	responseAlias?: string
+}
 type LocaleMap = { [discordLocale: string]: string }
 
-const allCommands = [cmdParse, cmdForceParse]
-const cmdToExecute: { [key: string]: (interaction: MessageContextMenuCommandInteraction) => void } = {}
+const allCommands: CommandDefinition[] = [cmdParse, cmdForceParse, cmdAskForLogs]
+const cmdByName: { [key: string]: CommandDefinition } = {}
 
-export function executeCommand(interaction: MessageContextMenuCommandInteraction) {
-	const exec = cmdToExecute[interaction.commandName]
-	if (exec)
-		exec(interaction)
+export async function executeCommand(interaction: MessageContextMenuCommandInteraction) {
+	try {
+		const cmdName = interaction.commandName
+		const cmd = cmdByName[cmdName]
+		const exec = cmd?.execute
+		if (exec) {
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral })
+			const success = await exec(interaction)
+			await interaction.editReply(trText("bot_cmd_" + (cmd.responseAlias ?? cmdName) + (success ? "_ok" : "_error")))
+		}
+	} catch (e) {
+		console.error(e)
+	}
 }
 
 function getCommandJson(data: ContextMenuCommandBuilder, toVcdLocales: LocaleMap) {
 	const names: LocaleMap = {}
 	for (const loc of Object.keys(toVcdLocales)) {
-		names[loc] = trText("bot_command_" + data.name, undefined, toVcdLocales[loc])
+		names[loc] = trText("bot_cmd_" + data.name + "_title", undefined, toVcdLocales[loc])
 	}
 
 	return data
@@ -27,7 +42,7 @@ function getCommandJson(data: ContextMenuCommandBuilder, toVcdLocales: LocaleMap
 
 export function registerAll(discordToken: string, discordAppId: string) {
 	for (const cmd of allCommands) {
-		cmdToExecute[cmd.data.name] = cmd.execute
+		cmdByName[cmd.data.name] = cmd
 	}
 
 	const bestLocales: LocaleMap = {}
@@ -42,7 +57,7 @@ export function registerAll(discordToken: string, discordAppId: string) {
 		}).then((data: any) => {
 			console.log(`Successfully reloaded ${data.length} application commands.`)
 		})
-	} catch (error) {
-		console.error(error)
+	} catch (e) {
+		console.error(e)
 	}
 }

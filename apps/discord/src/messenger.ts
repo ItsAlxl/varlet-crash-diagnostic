@@ -1,8 +1,8 @@
 import { trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
-import { findDumpGuid, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { findDumpGuid, findGuid, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { EmbedBuilder, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot } from "discord.js"
-import { getDupedLog, getDupedPaste, rememberDupeLog, rememberDupePaste, type DedupeRecord } from "./dedupe"
+import { testLogFreshness, testPasteFreshness, type DedupeRecord } from "./dedupe"
 
 type AttachmentReport = {
 	fileName: string,
@@ -79,6 +79,29 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 	return components
 }
 
+function addConsoleLogAsk(embedBuilder: EmbedBuilder, guid: string | undefined = undefined) {
+	const specifyLog = guid
+		? trMarkdown("bot_log_location_specify", { logNameEnd: getLogSuffix(guid) }, "en")
+		: ""
+	embedBuilder.setDescription(`${trMarkdown("bot_log_location_prefix", undefined, "en")}
+\`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
+
+${trMarkdown("bot_log_location_suffix", { specifyLog: specifyLog }, "en")}`)
+}
+
+function addDedupe(embedBuilder: EmbedBuilder, links: string) {
+	embedBuilder.addFields({
+		name: trReport("bot_deduped_title"),
+		value: trReport("bot_deduped_desc", { dedupeLinks: links })
+	})
+}
+
+function finishEmbed(embedBuilder: EmbedBuilder) {
+	embedBuilder.setURL("https://itsalxl.github.io/varlet-crash-diagnostic")
+	embedBuilder.setTitle(trReport("varlet_tool_title"))
+	embedBuilder.setColor("#782312")
+}
+
 async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, allowDupes: boolean, replyTo: Message | undefined = undefined) {
 	const response: MessageReplyOptions = {}
 
@@ -118,15 +141,15 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 
 		const freshReports: AttachmentReport[] = []
 		for (const r of reports) {
-			const dupe = getDupedLog(r.report.guid)
-			const isFresh = dupe === undefined
-			if (allowDupes || isFresh) {
-				freshReports.push(r)
+			const [isFresh, dupe] = testLogFreshness(r.report.guid, allowDupes)
+			if (dupe) {
 				if (isFresh)
-					newDedupeRecords.push(rememberDupeLog(r.report.guid))
-			} else if (dupe.responseReference) {
-				referencedDupes.push(dupe.responseReference)
+					newDedupeRecords.push(dupe)
+				else if (dupe.responseReference)
+					referencedDupes.push(dupe.responseReference)
 			}
+			if (isFresh)
+				freshReports.push(r)
 		}
 
 		if (freshReports.length > 0) {
@@ -146,45 +169,79 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 	}
 
 	if (respondToCrashText && crashTextParse && (autoAskForLogs || explicit)) {
-		const dupe = getDupedPaste(crashTextParse.guid)
-		const isFresh = dupe === undefined
-		if (allowDupes || isFresh) {
-			embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
-			embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
-\`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
-
-${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashTextParse.guid) }, "en")}`)
+		const pasteGuid = crashTextParse.guid
+		const [isFresh, dupe] = testPasteFreshness(pasteGuid, allowDupes)
+		if (dupe) {
 			if (isFresh)
-				newDedupeRecords.push(rememberDupePaste(crashTextParse.guid))
-		} else if (dupe.responseReference) {
-			referencedDupes.push(dupe.responseReference)
+				newDedupeRecords.push(dupe)
+			else if (dupe.responseReference)
+				referencedDupes.push(dupe.responseReference)
+		}
+
+		if (isFresh) {
+			embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
+			addConsoleLogAsk(embedBuilder, pasteGuid)
 		}
 	}
 
 	if (referencedDupes.length > 0) {
-		embedBuilder.addFields({
-			name: trReport("bot_deduped_title"),
-			value: trReport("bot_deduped_desc", { dedupeLinks: referencedDupes.join(" ") })
-		})
+		addDedupe(embedBuilder, referencedDupes.join(" "))
 	}
 
 	if (embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) {
-		embedBuilder.setURL("https://itsalxl.github.io/varlet-crash-diagnostic")
-		embedBuilder.setTitle(trReport("varlet_tool_title"))
-		embedBuilder.setColor("#782312")
-
+		finishEmbed(embedBuilder)
 		response.embeds = [embedBuilder]
+
 		const sentMsg = await (replyTo ?? msg).reply!(response)
 		for (const r of newDedupeRecords) {
 			r.responseReference = sentMsg.url
 		}
+		return true
 	}
+	return false
+}
+
+export async function askForLogs(message: Message) {
+	const embedBuilder = new EmbedBuilder()
+
+	const guid = findGuid(message.content)
+	let newDedupeRecord = undefined
+	if (guid) {
+		const [isFresh, dupe] = testPasteFreshness(guid)
+		if (isFresh) {
+			addConsoleLogAsk(embedBuilder, guid)
+			newDedupeRecord = dupe
+		} else if (dupe?.responseReference) {
+			addDedupe(embedBuilder, dupe.responseReference)
+		}
+	} else {
+		addConsoleLogAsk(embedBuilder)
+	}
+
+	if (embedBuilder.length > 0) {
+		finishEmbed(embedBuilder)
+		const replyMsg = await message.reply({ embeds: [embedBuilder] })
+		if (newDedupeRecord) {
+			newDedupeRecord.responseReference = replyMsg.url
+		}
+		return true
+	}
+	return false
+}
+
+async function sendReportFromSnapshots(message: Message, explicit: boolean, allowDupes = false) {
+	let success = false
+	for (const snap of message.messageSnapshots) {
+		success ||= await sendReportFromMessage(snap[1], explicit, allowDupes, message)
+	}
+	return success
 }
 
 export async function sendReportOn(message: Message, explicit: boolean, allowDupes = false) {
-	// these awaits are theoretically bad, but in practice I think a maximum of one of these will actually run
-	await sendReportFromMessage(message, explicit, allowDupes)
-	for (const snap of message.messageSnapshots) {
-		await sendReportFromMessage(snap[1], explicit, allowDupes, message)
-	}
+	return Promise.all([
+		sendReportFromMessage(message, explicit, allowDupes),
+		sendReportFromSnapshots(message, explicit, allowDupes)
+	]).then(results => {
+		return results.some(r => r)
+	})
 }
