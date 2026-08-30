@@ -79,7 +79,7 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 	return components
 }
 
-async function sendReportFromMessage(msg: Message | MessageSnapshot, isPing: boolean, replyTo: Message | undefined = undefined) {
+async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, allowDupes: boolean, replyTo: Message | undefined = undefined) {
 	const response: MessageReplyOptions = {}
 
 	const components = await parseMessage(msg)
@@ -90,7 +90,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, isPing: boo
 
 	if (components.dumpGuids) {
 		if (reports) {
-			if (isPing && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
+			if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
 				embedBuilder.addFields({
 					name: trReport("insight_guid_dumpfile_mismatch_title"),
 					value: trReport("insight_guid_dumpfile_mismatch_desc")
@@ -108,7 +108,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, isPing: boo
 	const referencedDupes: string[] = []
 
 	let respondToCrashText = true
-	if (reports && isPing) {
+	if (reports && explicit) {
 		if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
 			embedBuilder.addFields({
 				name: trReport("insight_guid_mismatch_title"),
@@ -119,12 +119,13 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, isPing: boo
 		const freshReports: AttachmentReport[] = []
 		for (const r of reports) {
 			const dupe = getDupedLog(r.report.guid)
-			if (dupe) {
-				if (dupe.responseReference)
-					referencedDupes.push(dupe.responseReference)
-			} else {
+			const isFresh = dupe === undefined
+			if (allowDupes || isFresh) {
 				freshReports.push(r)
-				newDedupeRecords.push(rememberDupeLog(r.report.guid))
+				if (isFresh)
+					newDedupeRecords.push(rememberDupeLog(r.report.guid))
+			} else if (dupe.responseReference) {
+				referencedDupes.push(dupe.responseReference)
 			}
 		}
 
@@ -144,18 +145,19 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, isPing: boo
 		}
 	}
 
-	if (respondToCrashText && crashTextParse && (autoAskForLogs || isPing)) {
+	if (respondToCrashText && crashTextParse && (autoAskForLogs || explicit)) {
 		const dupe = getDupedPaste(crashTextParse.guid)
-		if (dupe) {
-			if (dupe.responseReference)
-				referencedDupes.push(dupe.responseReference)
-		} else {
-			newDedupeRecords.push(rememberDupePaste(crashTextParse.guid))
+		const isFresh = dupe === undefined
+		if (allowDupes || isFresh) {
 			embedBuilder.addFields(embedFieldsFromInsights(findCrashInsights(crashTextParse, true)))
 			embedBuilder.setDescription(`${trMarkdown("faq_log_location_bot_prefix", undefined, "en")}
 \`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
 
 ${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashTextParse.guid) }, "en")}`)
+			if (isFresh)
+				newDedupeRecords.push(rememberDupePaste(crashTextParse.guid))
+		} else if (dupe.responseReference) {
+			referencedDupes.push(dupe.responseReference)
 		}
 	}
 
@@ -171,18 +173,18 @@ ${trMarkdown("faq_log_location_bot_suffix", { logNameEnd: getLogSuffix(crashText
 		embedBuilder.setTitle(trReport("varlet_tool_title"))
 		embedBuilder.setColor("#782312")
 
-		response.embeds = [embedBuilder];
-		(replyTo ?? msg).reply!(response).then(sentMsg => {
-			for (const r of newDedupeRecords) {
-				r.responseReference = sentMsg.url
-			}
-		})
+		response.embeds = [embedBuilder]
+		const sentMsg = await (replyTo ?? msg).reply!(response)
+		for (const r of newDedupeRecords) {
+			r.responseReference = sentMsg.url
+		}
 	}
 }
 
-export function sendReportOn(message: Message, isPing: boolean) {
-	sendReportFromMessage(message, isPing)
+export async function sendReportOn(message: Message, explicit: boolean, allowDupes = false) {
+	// these awaits are theoretically bad, but in practice I think a maximum of one of these will actually run
+	await sendReportFromMessage(message, explicit, allowDupes)
 	for (const snap of message.messageSnapshots) {
-		sendReportFromMessage(snap[1], isPing, message)
+		await sendReportFromMessage(snap[1], explicit, allowDupes, message)
 	}
 }

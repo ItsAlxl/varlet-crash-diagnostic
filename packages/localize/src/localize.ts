@@ -35,19 +35,24 @@ export function configureLocalization(config: {
 }
 
 function getStartingLocale() {
-	if (browser) {
-		const languages = navigator.languages
-		for (const lang of languages) {
-			if (L10N.hasOwnProperty(lang))
-				return lang
-		}
+	if (browser && navigator && navigator.languages) {
+		getBestFitLocale(navigator.languages)
+	}
 
-		for (const lang of languages) {
-			const langSubtag = lang.split("-")[0]
-			const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
-			if (matched)
-				return matched
-		}
+	return "en"
+}
+
+export function getBestFitLocale(languages: readonly string[]) {
+	for (const lang of languages) {
+		if (L10N.hasOwnProperty(lang))
+			return lang
+	}
+
+	for (const lang of languages) {
+		const langSubtag = lang.split("-")[0]
+		const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
+		if (matched)
+			return matched
 	}
 
 	return "en"

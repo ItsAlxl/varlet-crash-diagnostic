@@ -1,9 +1,12 @@
 import { configureLocalization } from "@varlet-crash-diagnostic/localize/all"
-import { Client, Events, GatewayIntentBits, MessageReferenceType, type Message, type MessageSnapshot, type PartialMessage } from "discord.js"
+import { Client, Events, GatewayIntentBits, MessageReferenceType, REST, Routes, type Message, type MessageSnapshot, type PartialMessage } from "discord.js"
 import { sendReportOn, setAutoAskForLogs } from "./messenger"
+import { executeCommand, registerAll as registerCommands } from "./commands"
 
 const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
 const autoAskForLogs = process.env.AUTO_ASK_FOR_LOGS?.toLowerCase() === "true"
+const discordToken = process.env.DISCORD_TOKEN ?? ""
+const discordAppId = process.env.DISCORD_APP_ID
 setAutoAskForLogs(autoAskForLogs)
 
 const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
@@ -23,7 +26,6 @@ client.once(Events.ClientReady, (readyClient) => {
 function msgPingsMe(msg: Message | PartialMessage | MessageSnapshot) {
 	return (client.user && msg.mentions.members?.has(client.user.id)) ?? false
 }
-
 
 client.on(Events.MessageCreate, async (msg) => {
 	if (msg.author === client.user)
@@ -53,4 +55,12 @@ client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
 		sendReportOn(newMsg, true)
 })
 
-client.login(process.env.DISCORD_TOKEN)
+client.on(Events.InteractionCreate, async (interaction) => {
+	if (interaction.isMessageContextMenuCommand())
+		executeCommand(interaction)
+})
+
+client.login(discordToken)
+if (discordAppId) {
+	registerCommands(discordToken, discordAppId)
+}

@@ -81,8 +81,8 @@
 		"insight_none_desc_file": "Your best bet is to look at the callstack to get an idea of what the game was doing when it crashed, then disabling mods that you think may be related to that. If all else fails, you can try disabling half of your mods at a time to narrow down the culprit.",
 		"bot_deduped_title": "Duplicate of recent query",
 		"bot_deduped_desc": "I've already recently responded: {{dedupeLinks}}",
-		"bot_command_parse": "Parse crash text / console log",
-		"bot_command_ignore_dupes": "Parse, ignoring recent history",
+		"bot_command_parse": "Parse crash info",
+		"bot_command_force_parse": "Parse, ignoring recent history",
 		"hint_or": "OR",
 		"hint_no_uploads": "Note: no files are actually uploaded."
 	}
