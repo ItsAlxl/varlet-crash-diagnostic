@@ -2,7 +2,7 @@ import { trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { findDumpGuid, findGuid, isConsoleLogText, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { EmbedBuilder, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot } from "discord.js"
-import { testLogFreshness, testPasteFreshness, type DedupeRecord } from "./dedupe"
+import { DedupeStrictness, testLogFreshness, testPasteFreshness, type DedupeRecord } from "./dedupe"
 
 type AttachmentReport = {
 	fileName: string,
@@ -105,7 +105,7 @@ function finishEmbed(embedBuilder: EmbedBuilder) {
 	embedBuilder.setColor("#782312")
 }
 
-async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, allowDupes: boolean, replyTo: Message | undefined = undefined) {
+async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, dedupeStrict: DedupeStrictness, replyTo: Message | undefined = undefined) {
 	const response: MessageReplyOptions = {}
 
 	const components = await parseMessage(msg)
@@ -144,7 +144,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 
 		const freshReports: AttachmentReport[] = []
 		for (const r of reports) {
-			const [isFresh, dupe] = testLogFreshness(r.report.guid, allowDupes)
+			const [isFresh, dupe] = testLogFreshness(r.report.guid, dedupeStrict)
 			if (dupe) {
 				if (isFresh)
 					newDedupeRecords.push(dupe)
@@ -173,7 +173,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 
 	if (respondToCrashText && crashTextParse && (autoAskForLogs || explicit)) {
 		const pasteGuid = crashTextParse.guid
-		const [isFresh, dupe] = testPasteFreshness(pasteGuid, allowDupes)
+		const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
 		if (dupe) {
 			if (isFresh)
 				newDedupeRecords.push(dupe)
@@ -232,18 +232,18 @@ export async function askForLogs(message: Message) {
 	return false
 }
 
-async function sendReportFromSnapshots(message: Message, explicit: boolean, allowDupes = false) {
+async function sendReportFromSnapshots(message: Message, explicit: boolean, dedupeStrict = DedupeStrictness.Strict) {
 	let success = false
 	for (const snap of message.messageSnapshots) {
-		success ||= await sendReportFromMessage(snap[1], explicit, allowDupes, message)
+		success ||= await sendReportFromMessage(snap[1], explicit, dedupeStrict, message)
 	}
 	return success
 }
 
-export async function sendReportOn(message: Message, explicit: boolean, allowDupes = false) {
+export async function sendReportOn(message: Message, explicit: boolean, dedupeStrict = DedupeStrictness.Strict) {
 	return Promise.all([
-		sendReportFromMessage(message, explicit, allowDupes),
-		sendReportFromSnapshots(message, explicit, allowDupes)
+		sendReportFromMessage(message, explicit, dedupeStrict),
+		sendReportFromSnapshots(message, explicit, dedupeStrict)
 	]).then(results => {
 		return results.some(r => r)
 	})

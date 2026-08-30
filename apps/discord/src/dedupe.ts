@@ -3,6 +3,12 @@ export type DedupeRecord = {
 	responseReference?: string,
 }
 
+export enum DedupeStrictness {
+	Strict,
+	AllowDupes,
+	IgnoreDeduping,
+}
+
 type DedupeResult = [boolean, DedupeRecord | undefined]
 
 const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
@@ -22,22 +28,23 @@ function rememberDupe(history: DedupeRecord[], guid: string) {
 	return record
 }
 
-function testFreshness(history: DedupeRecord[], guid: string, allowDupes = false): DedupeResult {
+function testFreshness(history: DedupeRecord[], guid: string, strictness: DedupeStrictness): DedupeResult {
 	const dupe = getDupe(history, guid)
 	const isFresh = dupe === undefined
-	if (allowDupes || isFresh) {
-		if (isFresh)
+
+	if (isFresh || strictness !== DedupeStrictness.Strict) {
+		if (isFresh && strictness !== DedupeStrictness.IgnoreDeduping)
 			return [true, rememberDupe(history, guid)]
 		return [true, undefined]
 	}
 	return [false, dupe]
 }
 
-export function testLogFreshness(guid: string, allowDupes = false) {
-	return testFreshness(dedupeHistoryLogs, guid, allowDupes)
+export function testLogFreshness(guid: string, strictness = DedupeStrictness.Strict) {
+	return testFreshness(dedupeHistoryLogs, guid, strictness)
 }
 
-export function testPasteFreshness(guid: string, allowDupes = false) {
-	return testFreshness(dedupeHistoryPastes, guid, allowDupes)
+export function testPasteFreshness(guid: string, strictness = DedupeStrictness.Strict) {
+	return testFreshness(dedupeHistoryPastes, guid, strictness)
 }
 
