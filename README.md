@@ -40,19 +40,43 @@ Deploying the web app to a production environment only requires serving the cont
 
 ### Discord Bot
 
-The bot parses logs and crash text when pinged. Ping it in a message with logs attached and it will respond with a readout of insights and an attached report. You can also get the bot to respond to an already-sent message by editing the message text to ping the bot.
+The bot parses console log files and crash popup text. You can get a response from it in several ways:
 
-Alternatively, you can ping the bot in a reply to a message that has logs attached, and the bot will respond to the original message. However, the content of messages that do not ping the bot is [considered privileged](https://support-dev.discord.com/hc/en-us/articles/6205754771351-How-do-I-get-Privileged-Intents-for-my-bot), so this is an optional feature that has to be enabled with the environment variable `PRIVILEGED_MESSAGE_CONTENT=true`
+1. Send a message that pings the bot containing the crash info
+2. Edit a message containing the crash info to ping the bot
+3. Reply to a message containing crash info and ping the bot in the reply (see `REPLY_RETARGETING` below)
+4. Send a message containing crash popup text, regardless of it pings the bot (see `AUTO_ASK_FOR_LOGS` below)
+5. DM the bot with the crash info
+
+The bot consumes several environment variables for configuration. Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
+
+#### DISCORD_TOKEN
 
 Running the bot requires providing a valid Discord bot auth token, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_TOKEN=your-token-here`
 
-In order to prevent the bot from generating responses to the same log in a short timeframe, the bot remembers a certain number of console log GUIDs and will not respond to a log if its GUID is already present in that history. Note that this history is universal, not guild-dependent; this is done to keep the bot simple, as it doesn't really have a use-case for per-guild histories. The default history length is 10, but can be changed with the envrionment variable `DEDUPE_HISTORY`
+#### REPLY_RETARGETING
 
-Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
+The content of messages that do not ping the bot is [considered privileged](https://support-dev.discord.com/hc/en-us/articles/6205754771351-How-do-I-get-Privileged-Intents-for-my-bot), so using a reply to direct the bot to a message that didn't ping it is only enabled with the environment variable `REPLY_RETARGETING=true`
+
+#### AUTO_ASK_FOR_LOGS
+
+If you want the bot to automatically respond without being pinged to any message that contains crash popup text or crash dumps without any accompanying console logs, you can set the environment variable `AUTO_ASK_FOR_LOGS=true`; note that this requires privileged message content permission like `REPLY_RETARGETING`.
+
+#### DISCORD_APP_ID
+
+The bot has several commands that can be accessed by right-clicking a message in Discord and navigating to the `Apps` submenu. By default, these are restricted to server admins. They are only enabled if you provide your Discord application ID, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_APP_ID=your-id-here`
+
+#### PREFERRED_CHANNEL
+
+If you want to encourage users to ping the bot in a specific channel, provide the environment variable `PREFERRED_CHANNEL=channel-url-here` and the bot will tell users to ping it in that channel when it responds to messages in other channels.
+
+#### DEDUPE_HISTORY
+
+In order to prevent the bot from generating responses to the same log in a short timeframe, the bot remembers a certain number of console log GUIDs and will not respond to a log if its GUID is already present in that history. Note that this history is universal, not guild-dependent; this is done to keep the bot simple, as it doesn't really have a use-case for per-guild histories. The default history length is 10, but can be changed with the envrionment variable `DEDUPE_HISTORY`
 
 ## Localization
 
-Localizations are found in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, its `en` value is used as a fallback.
+Localizations are found in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, its `en` value is used as a fallback. Note that the `bot_cmd_*_title` values must be 32 characters or less; this is a limitation from Discord.
 
 Two forms of interpolation are supported:
 

@@ -14,6 +14,7 @@ const VALID_LINKS: TranslateContext = {
 	dmf: "https://www.nexusmods.com/warhammer40kdarktide/mods/8",
 	dxgi: "https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide",
 	oom: "https://forums.fatsharkgames.com/t/freezing-when-games-go-on-too-long/93895",
+	pagefile: "https://forums.fatsharkgames.com/t/constant-memory-related-crashes-post-update/120127/3",
 	faq_logs: "https://dmf-docs.darkti.de/#/faqs?id=where-can-i-find-the-game-logs",
 }
 const L10N = localizationJson as { [loc: string]: Locale }
@@ -35,19 +36,24 @@ export function configureLocalization(config: {
 }
 
 function getStartingLocale() {
-	if (browser) {
-		const languages = navigator.languages
-		for (const lang of languages) {
-			if (L10N.hasOwnProperty(lang))
-				return lang
-		}
+	if (browser && navigator && navigator.languages) {
+		getBestFitLocale(navigator.languages)
+	}
 
-		for (const lang of languages) {
-			const langSubtag = lang.split("-")[0]
-			const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
-			if (matched)
-				return matched
-		}
+	return "en"
+}
+
+export function getBestFitLocale(languages: readonly string[]) {
+	for (const lang of languages) {
+		if (L10N.hasOwnProperty(lang))
+			return lang
+	}
+
+	for (const lang of languages) {
+		const langSubtag = lang.split("-")[0]
+		const matched = Object.keys(L10N).find(k => k.split("-")[0] === langSubtag)
+		if (matched)
+			return matched
 	}
 
 	return "en"
@@ -145,7 +151,7 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 						tuple.attributes.set(linkSplit[0], linkSplit[1])
 						tuple.text = getLinkUrl(linkSplit[1])
 					} else {
-						tuple.text = (ctx ? ctx[terpContextual].toString() : undefined)
+						tuple.text = (ctx ? ctx[terpContextual]?.toString() : undefined)
 							?? ("<missing ctx: " + terpContextual + ">")
 					}
 				}
@@ -167,7 +173,7 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 	return results
 }
 
-export function trRaw(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trRaw(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return translate(k, locale ?? getCurrentLocaleKey(), ctx)
 }
 
@@ -175,12 +181,8 @@ function rawToText(raw: TranslatedParagraph[]) {
 	return raw.map(p => p.map(t => t.text).join("")).join("\n\n")
 }
 
-export function trText(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trText(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return rawToText(trRaw(k, ctx, locale))
-}
-
-export function trReport(k: string, ctx: TranslateContext = {}) {
-	return trText(k, ctx, "en")
 }
 
 function getLinkUrl(link: string) {
@@ -206,7 +208,7 @@ function tupleToElement(tuple: TranslatedTuple) {
 	return element
 }
 
-export function trHtml(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trHtml(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return trRaw(k, ctx, locale).map(p => {
 		const div = document.createElement("div")
 		div.replaceChildren(...p.map(tupleToElement))
@@ -214,8 +216,13 @@ export function trHtml(k: string, ctx: TranslateContext = {}, locale: string | u
 	})
 }
 
+function mdSuppressLink(url: string) {
+	return "<" + url + ">"
+}
+
 function tupleToMarkdown(t: TranslatedTuple) {
 	let text = t.text
+
 	const attr = t.attributes
 	if (attr) {
 		if (attr.get("code"))
@@ -226,17 +233,18 @@ function tupleToMarkdown(t: TranslatedTuple) {
 				const url = getLinkUrl(linkTarget)
 				if (text === url) {
 					if (mdSuppressLinks)
-						text = "<" + text + ">"
+						text = mdSuppressLink(text)
 				} else {
-					text = "[" + text + "](" + url + ")"
+					text = "[" + text + "](" + (mdSuppressLinks ? mdSuppressLink(url) : url) + ")"
 				}
 			}
 		}
 	}
+
 	return text
 }
 
-export function trMarkdown(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trMarkdown(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return trRaw(k, ctx, locale).map(p => p.map(tupleToMarkdown).join("")).join("\n\n")
 }
 

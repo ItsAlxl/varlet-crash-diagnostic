@@ -2,7 +2,7 @@ import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
 const rgxDumpName = /crash_dump(?:-\d+){4}(?:.\d+){2}-([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\.dmp/
-const rgxCrashMessage = /-\s*\[([^\]]+)]: ([^-]+)\s*-/
+const rgxCrashMessage = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/
 const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
@@ -40,6 +40,10 @@ export type ParsedHookChain = {
 	func: string,
 	mods: string[],
 	confident: boolean
+}
+
+export function isConsoleLogText(text: string) {
+	return text.startsWith("[Log version] 1\n[Session] ")
 }
 
 export function findGuid(text: string) {
@@ -135,12 +139,11 @@ export function parseOOM(engineError: string) {
 
 export function parseCrashText(text: string) {
 	const crashMatch = rgxCrashMessage.exec(text)
-	const guid = findGuid(text)
-	if (crashMatch && guid) {
+	if (crashMatch) {
 		return {
-			guid: guid,
-			errType: crashMatch[1],
-			message: crashMatch[2].trim()
+			guid: crashMatch[1],
+			errType: crashMatch[2],
+			message: crashMatch[3].trim()
 		}
 	}
 	return undefined

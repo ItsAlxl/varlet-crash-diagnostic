@@ -1,4 +1,4 @@
-import { type TranslateContext, trReport, trText } from "@varlet-crash-diagnostic/localize/all"
+import { type TranslateContext, trText } from "@varlet-crash-diagnostic/localize/all"
 import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, type ParsedCallstack, type ParsedCrashText } from "./parse"
 import { version } from "../package.json"
 
@@ -111,6 +111,10 @@ function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => 
 	return callstackText
 }
 
+function trReport(k: string, ctx: TranslateContext = undefined) {
+	return trText(k, ctx, "en")
+}
+
 export function createLogReport(logText: string, fileName: string | undefined): LogReport {
 	let guid = fileName ? findGuid(fileName) : undefined
 	const guidFromFileName = guid ? guid.length > 0 : false
@@ -184,12 +188,18 @@ function insightBaseIssue(message: string) {
 
 function insightCrashMessageMod(message: string, isInput = false) {
 	const mods = findModsFromPaths(message).filter(filterOutDmf)
-	const numMods = mods.length
-	if (numMods > 0) {
+	const modName = mods.length > 0 ? mods[0] : undefined
+	if (modName) {
 		return {
 			desc: isInput ? "insight_crash_message_desc_input" : "insight_crash_message_desc_lone",
-			context: { modName: mods[0] }
+			context: { modName: modName }
 		}
+	}
+}
+
+function insightPageFile(message: string) {
+	if (message.includes("Page allocator 'render_page_allocator' failed allocating")) {
+		return "insight_pagefile_desc"
 	}
 }
 
@@ -204,6 +214,12 @@ const crashInsights: CrashInsight[] = [
 		"insight_oom_title",
 		(crash: ParsedCrashText) => {
 			return insightOOM(crash.message)
+		}
+	),
+	new CrashInsight(
+		"insight_pagefile_title",
+		(crash: ParsedCrashText) => {
+			return insightPageFile(crash.message)
 		}
 	),
 	new CrashInsight(
@@ -256,6 +272,12 @@ const logInsights: LogInsight[] = [
 		"insight_oom_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
 			return insightOOM(callstack.engineError ?? "")
+		}
+	),
+	new LogInsight(
+		"insight_pagefile_title",
+		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+			return insightPageFile(callstack.engineError ?? "")
 		}
 	),
 	new LogInsight(
