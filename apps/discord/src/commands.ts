@@ -40,7 +40,7 @@ function getCommandJson(data: ContextMenuCommandBuilder, toVcdLocales: LocaleMap
 		.toJSON()
 }
 
-export function registerAll(discordToken: string, discordAppId: string) {
+export async function registerAll(discordToken: string, discordAppId: string) {
 	for (const cmd of allCommands) {
 		cmdByName[cmd.data.name] = cmd
 	}
@@ -52,11 +52,10 @@ export function registerAll(discordToken: string, discordAppId: string) {
 
 	try {
 		console.log(`Started refreshing ${allCommands.length} application commands.`)
-		new REST().setToken(discordToken).put(Routes.applicationCommands(discordAppId), {
+		const data: any = await new REST().setToken(discordToken).put(Routes.applicationCommands(discordAppId), {
 			body: allCommands.map(c => getCommandJson(c.data, bestLocales))
-		}).then((data: any) => {
-			console.log(`Successfully reloaded ${data.length} application commands.`)
 		})
+		console.log(`Successfully reloaded ${data.length} application commands.`)
 	} catch (e) {
 		console.error(e)
 	}

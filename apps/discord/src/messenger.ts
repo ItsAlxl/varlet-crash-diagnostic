@@ -15,6 +15,7 @@ type ResponseComponents = {
 	dumpGuids?: string[],
 }
 
+const preferredChannelUrl = process.env.PREFERRED_CHANNEL
 let autoAskForLogs = false
 
 export function setAutoAskForLogs(autoAsk: boolean) {
@@ -82,14 +83,15 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 	return components
 }
 
-function addConsoleLogAsk(embedBuilder: EmbedBuilder, guid: string | undefined = undefined) {
+function addConsoleLogAsk(embedBuilder: EmbedBuilder, guid: string | undefined = undefined, channelUrl: string | undefined = undefined) {
+	const preferChannel = getChannelPreferenceText("bot_log_location_prefer_channel", channelUrl) ?? ""
 	const specifyLog = guid
-		? trMarkdown("bot_log_location_specify", { logNameEnd: getLogSuffix(guid) }, "en")
+		? trMarkdown("bot_log_location_specify_log", { logNameEnd: getLogSuffix(guid) }, "en")
 		: ""
 	embedBuilder.setDescription(`${trMarkdown("bot_log_location_prefix", undefined, "en")}
 \`${trMarkdown("faq_log_location_steam_path", undefined, "en")}\`
 
-${trMarkdown("bot_log_location_suffix", { specifyLog: specifyLog }, "en")}`)
+${trMarkdown("bot_log_location_suffix", { preferChannel: preferChannel, specifyLog: specifyLog }, "en")}`)
 }
 
 function addDedupe(embedBuilder: EmbedBuilder, links: string) {
@@ -105,8 +107,16 @@ function finishEmbed(embedBuilder: EmbedBuilder) {
 	embedBuilder.setColor("#782312")
 }
 
+function getChannelPreferenceText(locKey: string, channelUrl: string | undefined) {
+	return channelUrl && preferredChannelUrl && channelUrl !== preferredChannelUrl
+		? trMarkdown(locKey, { channelUrl: preferredChannelUrl }, "en")
+		: undefined
+}
+
 async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, dedupeStrict: DedupeStrictness, replyTo: Message | undefined = undefined) {
 	const response: MessageReplyOptions = {}
+	const replyTarget = replyTo ?? msg
+	const channelUrl = replyTarget?.channel?.url
 
 	const components = await parseMessage(msg)
 	const reports = components.reports
@@ -191,11 +201,15 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		addDedupe(embedBuilder, referencedDupes.join(" "))
 	}
 
-	if (embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) {
+	if ((embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) && replyTarget.reply) {
+		const preferChannelText = getChannelPreferenceText("bot_prefer_channel", channelUrl)
+		if (preferChannelText && !embedBuilder.data.description) {
+			embedBuilder.setDescription(preferChannelText)
+		}
 		finishEmbed(embedBuilder)
 		response.embeds = [embedBuilder]
 
-		const sentMsg = await (replyTo ?? msg).reply!(response)
+		const sentMsg = await replyTarget.reply(response)
 		for (const r of newDedupeRecords) {
 			r.responseReference = sentMsg.url
 		}
@@ -208,17 +222,18 @@ export async function askForLogs(message: Message) {
 	const embedBuilder = new EmbedBuilder()
 
 	const guid = findGuid(message.content)
+	const channelUrl = message.channel.url
 	let newDedupeRecord = undefined
 	if (guid) {
 		const [isFresh, dupe] = testPasteFreshness(guid)
 		if (isFresh) {
-			addConsoleLogAsk(embedBuilder, guid)
+			addConsoleLogAsk(embedBuilder, guid, channelUrl)
 			newDedupeRecord = dupe
 		} else if (dupe?.responseReference) {
 			addDedupe(embedBuilder, dupe.responseReference)
 		}
 	} else {
-		addConsoleLogAsk(embedBuilder)
+		addConsoleLogAsk(embedBuilder, undefined, channelUrl)
 	}
 
 	if (embedBuilder.length > 0) {
@@ -241,10 +256,8 @@ async function sendReportFromSnapshots(message: Message, explicit: boolean, dedu
 }
 
 export async function sendReportOn(message: Message, explicit: boolean, dedupeStrict = DedupeStrictness.Strict) {
-	return Promise.all([
+	return (await Promise.all([
 		sendReportFromMessage(message, explicit, dedupeStrict),
 		sendReportFromSnapshots(message, explicit, dedupeStrict)
-	]).then(results => {
-		return results.some(r => r)
-	})
+	])).some(r => r)
 }
