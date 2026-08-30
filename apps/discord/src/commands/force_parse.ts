@@ -1,5 +1,6 @@
 import { ApplicationCommandType, ContextMenuCommandBuilder, type MessageContextMenuCommandInteraction } from "discord.js"
 import { sendReportOn } from "../messenger"
+import { DedupeStrictness } from "../dedupe"
 
 export default {
 	data: new ContextMenuCommandBuilder()
@@ -8,6 +9,6 @@ export default {
 		.setDefaultMemberPermissions(0),
 	responseAlias: "parse",
 	async execute(interaction: MessageContextMenuCommandInteraction) {
-		return await sendReportOn(interaction.targetMessage, true, true)
+		return await sendReportOn(interaction.targetMessage, true, DedupeStrictness.AllowDupes)
 	}
 }
