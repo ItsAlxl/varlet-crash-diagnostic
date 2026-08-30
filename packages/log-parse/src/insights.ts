@@ -193,6 +193,12 @@ function insightCrashMessageMod(message: string, isInput = false) {
 	}
 }
 
+function insightPageFile(message: string) {
+	if (message.includes("Page allocator 'render_page_allocator' failed allocating")) {
+		return "insight_pagefile_desc"
+	}
+}
+
 const crashInsights: CrashInsight[] = [
 	new CrashInsight(
 		"insight_dxgi_title",
@@ -204,6 +210,12 @@ const crashInsights: CrashInsight[] = [
 		"insight_oom_title",
 		(crash: ParsedCrashText) => {
 			return insightOOM(crash.message)
+		}
+	),
+	new CrashInsight(
+		"insight_pagefile_title",
+		(crash: ParsedCrashText) => {
+			return insightPageFile(crash.message)
 		}
 	),
 	new CrashInsight(
@@ -256,6 +268,12 @@ const logInsights: LogInsight[] = [
 		"insight_oom_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
 			return insightOOM(callstack.engineError ?? "")
+		}
+	),
+	new LogInsight(
+		"insight_pagefile_title",
+		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+			return insightPageFile(callstack.engineError ?? "")
 		}
 	),
 	new LogInsight(

@@ -44,6 +44,8 @@
 		"insight_oom_title": "Out-of-memory crash",
 		"insight_oom_desc": "This is caused by the Lua heap running out of space, which is unrelated to your total system RAM. You can increase the heap size from your current {{reserved}} MB to a maximum of 2048 MB by adding {{'--lua-heap-mb-size 2048' code}} to your launch options or by editing a config file: {{link=oom}}",
 		"insight_oom_desc_already_max": "This is caused by the Lua heap running out of space, which is unrelated to your total system RAM. The log indicates that you have already increased the heap size to the maximum of 2048 MB, so your only options at this point are to close the game more often or to remove mods that you think are making reckless allocations.",
+		"insight_pagefile_title": "Paging file ran out of space",
+		"insight_pagefile_desc": "Your virtual memory paging file ran out of space. This may be due to OS configuration or insufficient hard drive space.\n{{link=pagefile}}",
 		"insight_dmlf_title": "DMF/DML error",
 		"insight_dml_desc": "Make sure DML is up-to-date and installed correctly.\n{{link=dml}}",
 		"insight_dmf_desc": "DMF is named in the crash message; however, this error may be caused by a mod using DMF's functionality. Make sure DMF is up-to-date and installed correctly.\n{{link=dmf}}",
