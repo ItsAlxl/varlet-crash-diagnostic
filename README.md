@@ -46,6 +46,7 @@ The bot parses console log files and crash popup text. You can get a response fr
 2. Edit a message containing the crash info to ping the bot
 3. Reply to a message containing crash info and ping the bot in the reply (see `REPLY_RETARGETING` below)
 4. Send a message containing crash popup text, regardless of it pings the bot (see `AUTO_ASK_FOR_LOGS` below)
+5. DM the bot with the crash info
 
 The bot consumes several environment variables for configuration. Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
 
