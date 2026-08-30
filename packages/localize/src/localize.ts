@@ -151,7 +151,7 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 						tuple.attributes.set(linkSplit[0], linkSplit[1])
 						tuple.text = getLinkUrl(linkSplit[1])
 					} else {
-						tuple.text = (ctx ? ctx[terpContextual].toString() : undefined)
+						tuple.text = (ctx ? ctx[terpContextual]?.toString() : undefined)
 							?? ("<missing ctx: " + terpContextual + ">")
 					}
 				}
@@ -173,7 +173,7 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 	return results
 }
 
-export function trRaw(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trRaw(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return translate(k, locale ?? getCurrentLocaleKey(), ctx)
 }
 
@@ -181,12 +181,8 @@ function rawToText(raw: TranslatedParagraph[]) {
 	return raw.map(p => p.map(t => t.text).join("")).join("\n\n")
 }
 
-export function trText(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trText(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return rawToText(trRaw(k, ctx, locale))
-}
-
-export function trReport(k: string, ctx: TranslateContext = {}) {
-	return trText(k, ctx, "en")
 }
 
 function getLinkUrl(link: string) {
@@ -212,7 +208,7 @@ function tupleToElement(tuple: TranslatedTuple) {
 	return element
 }
 
-export function trHtml(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trHtml(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return trRaw(k, ctx, locale).map(p => {
 		const div = document.createElement("div")
 		div.replaceChildren(...p.map(tupleToElement))
@@ -248,7 +244,7 @@ function tupleToMarkdown(t: TranslatedTuple) {
 	return text
 }
 
-export function trMarkdown(k: string, ctx: TranslateContext = {}, locale: string | undefined = undefined) {
+export function trMarkdown(k: string, ctx: TranslateContext = undefined, locale: string | undefined = undefined) {
 	return trRaw(k, ctx, locale).map(p => p.map(tupleToMarkdown).join("")).join("\n\n")
 }
 

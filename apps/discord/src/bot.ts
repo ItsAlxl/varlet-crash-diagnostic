@@ -32,12 +32,14 @@ function msgPingsMe(msg: Message | PartialMessage | MessageSnapshot) {
 	return msgIsDm(msg) || (client.user && msg.mentions.members?.has(client.user.id)) || false
 }
 
-function getMsgDedupeStrictness(msg: Message | PartialMessage | MessageSnapshot) {
-	return msgIsDm(msg) ? DedupeStrictness.IgnoreDeduping : DedupeStrictness.Strict
-}
-
 function msgIsMine(msg: Message) {
 	return msg.author === client.user
+}
+
+function sendReportOnNewMessage(msg: Message, explicit: boolean) {
+	const isDm = msgIsDm(msg)
+	const dedupeStrictness = isDm ? DedupeStrictness.IgnoreDeduping : DedupeStrictness.Strict
+	sendReportOn(msg, explicit, dedupeStrictness, isDm)
 }
 
 client.on(Events.MessageCreate, async (msg) => {
@@ -48,14 +50,14 @@ client.on(Events.MessageCreate, async (msg) => {
 			if (ref && ref.type === MessageReferenceType.Default) {
 				const refMsg = await msg.fetchReference()
 				if (!msgPingsMe(refMsg) && !msgIsMine(refMsg)) {
-					sendReportOn(refMsg, true, getMsgDedupeStrictness(refMsg))
+					sendReportOnNewMessage(refMsg, true)
 					responded = true
 				}
 			}
 		}
 
 		if (!responded)
-			sendReportOn(msg, msgPingsMe(msg), getMsgDedupeStrictness(msg))
+			sendReportOnNewMessage(msg, msgPingsMe(msg))
 	}
 })
 

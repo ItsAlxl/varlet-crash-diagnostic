@@ -1,4 +1,4 @@
-import { type TranslateContext, trReport, trText } from "@varlet-crash-diagnostic/localize/all"
+import { type TranslateContext, trText } from "@varlet-crash-diagnostic/localize/all"
 import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, type ParsedCallstack, type ParsedCrashText } from "./parse"
 import { version } from "../package.json"
 
@@ -109,6 +109,10 @@ function createCallstackText(callstack: ParsedCallstack, trCb: (key: string) => 
 	callstackText = appendCallstackText(callstackText, callstack.luaStack, `[${trCb("readout_lua_stack")}]:\n`)
 	callstackText = appendCallstackText(callstackText, callstack.engineStack, `[${trCb("readout_engine_stack")}]:\n`)
 	return callstackText
+}
+
+function trReport(k: string, ctx: TranslateContext = undefined) {
+	return trText(k, ctx, "en")
 }
 
 export function createLogReport(logText: string, fileName: string | undefined): LogReport {
