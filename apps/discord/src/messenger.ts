@@ -1,6 +1,6 @@
 import { trMarkdown, trReport } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
-import { findDumpGuid, findGuid, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { findDumpGuid, findGuid, isConsoleLogText, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { EmbedBuilder, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot } from "discord.js"
 import { testLogFreshness, testPasteFreshness, type DedupeRecord } from "./dedupe"
 
@@ -56,13 +56,16 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 		if (fileName.endsWith(".txt") || fileName.endsWith(".log")) {
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
-				const logReport = createLogReport(await fileFetch.text(), fileName)
-				const logGuid = logReport.guid
-				if (!reports.some(r => r.report.guid === logGuid))
-					reports.push({
-						fileName: "varlet-" + logGuid,
-						report: logReport
-					})
+				const fileText = await fileFetch.text()
+				if (isConsoleLogText(fileText)) {
+					const logReport = createLogReport(fileText, fileName)
+					const logGuid = logReport.guid
+					if (!reports.some(r => r.report.guid === logGuid))
+						reports.push({
+							fileName: "varlet-" + logGuid,
+							report: logReport
+						})
+				}
 			}
 		} else {
 			const dumpGuid = findDumpGuid(fileName)

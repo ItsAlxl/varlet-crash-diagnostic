@@ -42,6 +42,10 @@ export type ParsedHookChain = {
 	confident: boolean
 }
 
+export function isConsoleLogText(text: string) {
+	return text.startsWith("[Log version] 1\n[Session] ")
+}
+
 export function findGuid(text: string) {
 	const guidMatch = rgxGuid.exec(text)
 	return guidMatch ? guidMatch[0] : undefined

@@ -1,6 +1,6 @@
 import { findCrashInsights, createLogReport, type InsightResult } from "@varlet-crash-diagnostic/log-parse/insights"
 import { onLocaleChanged, trIntoElement } from "@varlet-crash-diagnostic/localize/all"
-import type { ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { isConsoleLogText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 
 const navbar = document.getElementById("navbar") as HTMLDivElement
 
@@ -91,12 +91,13 @@ export function showCrashInsights(p: ParsedCrashText | undefined) {
 	switchGuidVis(crashGuid)
 }
 
-export function displayLogFile(file: File) {
+export async function displayLogFile(file: File) {
 	switchGuidVis("")
 	const fileName = file.name
 	fileLabel.innerText = fileName
 
-	file.text().then((logText) => {
+	const logText = await file.text()
+	if (isConsoleLogText(logText)) {
 		const report = createLogReport(logText, fileName)
 		logGuid = report.guid
 		switchGuidVis(report.guid)
@@ -117,7 +118,7 @@ export function displayLogFile(file: File) {
 			window.URL.revokeObjectURL(reportSaveLink.href)
 		reportSaveLink.href = window.URL.createObjectURL(new Blob([reportText], { type: "text/plain" }))
 		reportSaveLink.download = "varlet-" + logGuid + ".txt"
-	})
+	}
 }
 
 onLocaleChanged(refreshInsights)
