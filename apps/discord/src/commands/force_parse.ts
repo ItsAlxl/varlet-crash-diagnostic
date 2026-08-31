@@ -9,6 +9,6 @@ export default {
 		.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
 	responseAlias: "parse",
 	async execute(interaction: MessageContextMenuCommandInteraction) {
-		return await sendReportOn(interaction.targetMessage, true, DedupeStrictness.AllowDupes)
+		return await sendReportOn(interaction.targetMessage, true, { reactOnFailure: false, dedupeStrict: DedupeStrictness.AllowDupes })
 	}
 }

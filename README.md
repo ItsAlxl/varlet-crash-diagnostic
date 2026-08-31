@@ -48,6 +48,8 @@ The bot parses console log files and crash popup text. You can get a response fr
 4. Send a message containing crash popup text, regardless of it pings the bot (see `AUTO_ASK_FOR_LOGS` below)
 5. DM the bot with the crash info
 
+If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with a custom emoji so that you know it's still active and responding. Simply revoking reaction permission disables this behavior.
+
 The bot consumes several environment variables for configuration. Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
 
 #### DISCORD_TOKEN

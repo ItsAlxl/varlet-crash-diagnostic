@@ -18,6 +18,13 @@ type ResponseComponents = {
 	dumpGuids?: string[],
 }
 
+type ResponseConfig = {
+	dedupeStrict?: DedupeStrictness,
+	verbose?: boolean,
+	reactOnFailure?: boolean,
+	retargetedFrom?: Message
+} | undefined
+
 type SummaryField = InsightResult | APIEmbedField
 type TrSummaryField = { title: string, descTerse: string, descVerbose?: string }
 
@@ -213,10 +220,8 @@ function getChannelPreferenceText(locKey: string, channelUrl: string | undefined
 		: undefined
 }
 
-async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, dedupeStrict: DedupeStrictness, verbose = false, replyTo: Message | undefined = undefined) {
-	const response: MessageReplyOptions = {}
+async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, config: ResponseConfig, replyTo: Message | undefined = undefined) {
 	const replyTarget = replyTo ?? msg
-
 	const channel = replyTarget?.channel
 	const isDm = channel?.type === ChannelType.DM
 	const channelUrl = isDm ? undefined : channel?.url
@@ -243,6 +248,10 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			})
 		}
 	}
+
+	const response: MessageReplyOptions = {}
+	const dedupeStrict = config?.dedupeStrict ?? DedupeStrictness.Strict
+	const verbose = config?.verbose ?? false
 
 	const newDedupeRecords: DedupeRecord[] = []
 	const referencedDupes: string[] = []
@@ -285,7 +294,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		}
 	}
 
-	if (respondToCrashText && crashTextParse && (autoAskForLogs || explicit)) {
+	if (respondToCrashText && crashTextParse && (explicit || autoAskForLogs)) {
 		const pasteGuid = crashTextParse.guid
 		const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
 		if (dupe) {
@@ -313,11 +322,28 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		finishEmbed(embedBuilder, summary, verbose)
 		response.embeds = [embedBuilder]
 
-		const sentMsg = await replyTarget.reply(response)
-		for (const r of newDedupeRecords) {
-			r.responseReference = sentMsg.url
+		try {
+			const sentMsg = await replyTarget.reply(response)
+			for (const r of newDedupeRecords) {
+				r.responseReference = sentMsg.url
+			}
+			return true
 		}
-		return true
+		catch (e) {
+			console.error(e)
+		}
+	}
+
+	if (explicit && (config?.reactOnFailure ?? true)) {
+		const reactTarget = config?.retargetedFrom ?? replyTarget
+		if (reactTarget.react) {
+			try {
+				await reactTarget.react("<:vcd_hadron:1541892073958146199>")
+			}
+			catch (e) {
+				console.error(e)
+			}
+		}
 	}
 	return false
 }
@@ -351,17 +377,17 @@ export async function askForLogs(message: Message) {
 	return false
 }
 
-async function sendReportFromSnapshots(message: Message, explicit: boolean, dedupeStrict = DedupeStrictness.Strict, verbose = false) {
+async function sendReportFromSnapshots(message: Message, explicit: boolean, config: ResponseConfig) {
 	let success = false
 	for (const snap of message.messageSnapshots) {
-		success ||= await sendReportFromMessage(snap[1], explicit, dedupeStrict, verbose, message)
+		success ||= await sendReportFromMessage(snap[1], explicit, config, message)
 	}
 	return success
 }
 
-export async function sendReportOn(message: Message, explicit: boolean, dedupeStrict = DedupeStrictness.Strict, verbose = false) {
+export async function sendReportOn(message: Message, explicit: boolean, config: ResponseConfig = undefined) {
 	return (await Promise.all([
-		sendReportFromMessage(message, explicit, dedupeStrict, verbose),
-		sendReportFromSnapshots(message, explicit, dedupeStrict, verbose)
+		sendReportFromMessage(message, explicit, config),
+		sendReportFromSnapshots(message, explicit, config),
 	])).some(r => r)
 }

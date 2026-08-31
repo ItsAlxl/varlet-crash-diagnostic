@@ -7,6 +7,6 @@ export default {
 		.setType(ApplicationCommandType.Message)
 		.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
 	async execute(interaction: MessageContextMenuCommandInteraction) {
-		return await sendReportOn(interaction.targetMessage, true)
+		return await sendReportOn(interaction.targetMessage, true, { reactOnFailure: false })
 	}
 }
