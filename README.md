@@ -64,7 +64,7 @@ If you want the bot to automatically respond without being pinged to any message
 
 #### DISCORD_APP_ID
 
-The bot has several commands that can be accessed by right-clicking a message in Discord and navigating to the `Apps` submenu. By default, these are restricted to server admins. They are only enabled if you provide your Discord application ID, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_APP_ID=your-id-here`
+The bot has several commands that can be accessed by right-clicking a message in Discord and navigating to the `Apps` submenu. By default, these are available to all users that have permission to send messages. They are only enabled if you provide your Discord application ID, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_APP_ID=your-id-here`
 
 #### PREFERRED_CHANNEL
 
