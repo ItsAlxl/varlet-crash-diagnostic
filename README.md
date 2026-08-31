@@ -48,11 +48,13 @@ The bot parses console log files and crash popup text. You can get a response fr
 4. Send a message containing crash popup text, regardless of it pings the bot (see `AUTO_ASK_FOR_LOGS` below)
 5. DM the bot with the crash info
 
+If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with a custom emoji so that you know it's still active and responding. Simply revoking reaction permission disables this behavior.
+
 The bot consumes several environment variables for configuration. Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
 
 #### DISCORD_TOKEN
 
-Running the bot requires providing a valid Discord bot auth token, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_TOKEN=your-token-here`
+The bot requires a valid Discord bot auth token, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_TOKEN=your-token-here`
 
 #### REPLY_RETARGETING
 
@@ -64,7 +66,7 @@ If you want the bot to automatically respond without being pinged to any message
 
 #### DISCORD_APP_ID
 
-The bot has several commands that can be accessed by right-clicking a message in Discord and navigating to the `Apps` submenu. By default, these are restricted to server admins. They are only enabled if you provide your Discord application ID, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_APP_ID=your-id-here`
+The bot has several commands that can be accessed by right-clicking a message in Discord and navigating to the `Apps` submenu. By default, these are available to all users that have permission to send messages. They are only enabled if you provide your Discord application ID, which you can get from the [Discord developer portal](https://discord.com/developers/applications). Supply it with the environment variable `DISCORD_APP_ID=your-id-here`
 
 #### PREFERRED_CHANNEL
 
@@ -72,7 +74,7 @@ If you want to encourage users to ping the bot in a specific channel, provide th
 
 #### DEDUPE_HISTORY
 
-In order to prevent the bot from generating responses to the same log in a short timeframe, the bot remembers a certain number of console log GUIDs and will not respond to a log if its GUID is already present in that history. Note that this history is universal, not guild-dependent; this is done to keep the bot simple, as it doesn't really have a use-case for per-guild histories. The default history length is 10, but can be changed with the envrionment variable `DEDUPE_HISTORY`
+In order to prevent the bot from generating responses to the same info in a short timeframe, the bot remembers a certain number of GUIDs and will not respond to a new message if its GUID is already present in that history. Two separate histories are tracked for crash popup text and console logs. Note that the history is universal, not guild-dependent; this is done to keep the bot simple, as it doesn't really have a use-case for per-guild histories. The default history length is 10, but can be changed with the envrionment variable `DEDUPE_HISTORY`
 
 ## Localization
 

@@ -10,9 +10,19 @@ const discordToken = process.env.DISCORD_TOKEN ?? ""
 const discordAppId = process.env.DISCORD_APP_ID
 setAutoAskForLogs(autoAskForLogs)
 
-const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.DirectMessages]
+const intents = [
+	GatewayIntentBits.Guilds,
+	GatewayIntentBits.GuildMessages,
+	GatewayIntentBits.DirectMessages,
+	GatewayIntentBits.GuildMessageReactions,
+	GatewayIntentBits.DirectMessageReactions,
+]
+
+// privileged intent
 if (replyRetargeting || autoAskForLogs)
 	intents.push(GatewayIntentBits.MessageContent)
+
+// Partials.Channel needed to make DMs work
 const client = new Client({ partials: [Partials.Channel], intents: intents })
 
 configureLocalization({
@@ -36,10 +46,13 @@ function msgIsMine(msg: Message) {
 	return msg.author === client.user
 }
 
-function sendReportOnNewMessage(msg: Message, explicit: boolean) {
+function sendReportOnNewMessage(msg: Message, explicit: boolean, retargetedFrom: Message | undefined = undefined) {
 	const isDm = msgIsDm(msg)
-	const dedupeStrictness = isDm ? DedupeStrictness.IgnoreDeduping : DedupeStrictness.Strict
-	sendReportOn(msg, explicit, dedupeStrictness, isDm)
+	sendReportOn(msg, explicit, {
+		dedupeStrict: isDm ? DedupeStrictness.IgnoreDeduping : DedupeStrictness.Strict,
+		verbose: isDm,
+		retargetedFrom: retargetedFrom,
+	})
 }
 
 client.on(Events.MessageCreate, async (msg) => {
@@ -50,7 +63,7 @@ client.on(Events.MessageCreate, async (msg) => {
 			if (ref && ref.type === MessageReferenceType.Default) {
 				const refMsg = await msg.fetchReference()
 				if (!msgPingsMe(refMsg) && !msgIsMine(refMsg)) {
-					sendReportOnNewMessage(refMsg, true)
+					sendReportOnNewMessage(refMsg, true, msg)
 					responded = true
 				}
 			}
