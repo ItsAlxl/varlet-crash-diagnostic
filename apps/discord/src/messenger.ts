@@ -221,131 +221,129 @@ function getChannelPreferenceText(locKey: string, channelUrl: string | undefined
 }
 
 async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, config: ResponseConfig, replyTo: Message | undefined = undefined) {
-	const replyTarget = replyTo ?? msg
-	const channel = replyTarget?.channel
-	const isDm = channel?.type === ChannelType.DM
-	const channelUrl = isDm ? undefined : channel?.url
+	try {
+		const replyTarget = replyTo ?? msg
+		const channel = replyTarget?.channel
+		const isDm = channel?.type === ChannelType.DM
+		const channelUrl = isDm ? undefined : channel?.url
 
-	const components = await parseMessage(msg)
-	const reports = components.reports
-	const crashTextParse = components.crashTextParse
+		const components = await parseMessage(msg)
+		const reports = components.reports
+		const crashTextParse = components.crashTextParse
 
-	const embedBuilder = new EmbedBuilder()
-	const summary: SummaryField[] = []
+		const embedBuilder = new EmbedBuilder()
+		const summary: SummaryField[] = []
 
-	if (components.dumpGuids) {
-		if (reports) {
-			if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
+		if (components.dumpGuids) {
+			if (reports) {
+				if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
+					embedBuilder.addFields({
+						name: trText("insight_guid_dumpfile_mismatch_title"),
+						value: trText("insight_guid_dumpfile_mismatch_desc")
+					})
+				}
+			} else if (autoAskForLogs) {
 				embedBuilder.addFields({
-					name: trText("insight_guid_dumpfile_mismatch_title"),
-					value: trText("insight_guid_dumpfile_mismatch_desc")
+					name: trText("insight_guid_dumpfile_useless_title"),
+					value: trText("insight_guid_dumpfile_useless_desc")
 				})
 			}
-		} else if (autoAskForLogs) {
-			embedBuilder.addFields({
-				name: trText("insight_guid_dumpfile_useless_title"),
-				value: trText("insight_guid_dumpfile_useless_desc")
-			})
-		}
-	}
-
-	const response: MessageReplyOptions = {}
-	const dedupeStrict = config?.dedupeStrict ?? DedupeStrictness.Strict
-	const verbose = config?.verbose ?? false
-
-	const newDedupeRecords: DedupeRecord[] = []
-	const referencedDupes: string[] = []
-
-	let respondToCrashText = true
-	if (reports && explicit) {
-		if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
-			embedBuilder.addFields({
-				name: trText("insight_guid_mismatch_title"),
-				value: trText(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
-			})
 		}
 
-		const freshReports: AttachmentReport[] = []
-		for (const r of reports) {
-			const [isFresh, dupe] = testLogFreshness(r.report.guid, dedupeStrict)
+		const response: MessageReplyOptions = {}
+		const dedupeStrict = config?.dedupeStrict ?? DedupeStrictness.Strict
+		const verbose = config?.verbose ?? false
+
+		const newDedupeRecords: DedupeRecord[] = []
+		const referencedDupes: string[] = []
+
+		let respondToCrashText = true
+		if (reports && explicit) {
+			if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
+				embedBuilder.addFields({
+					name: trText("insight_guid_mismatch_title"),
+					value: trText(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
+				})
+			}
+
+			const freshReports: AttachmentReport[] = []
+			for (const r of reports) {
+				const [isFresh, dupe] = testLogFreshness(r.report.guid, dedupeStrict)
+				if (dupe) {
+					if (isFresh)
+						newDedupeRecords.push(dupe)
+					else if (dupe.responseReference)
+						referencedDupes.push(dupe.responseReference)
+				}
+				if (isFresh)
+					freshReports.push(r)
+			}
+
+			if (freshReports.length > 0) {
+				respondToCrashText = false
+
+				if (freshReports.length === 1)
+					summary.push(...freshReports[0].report.insights)
+
+				response.files = freshReports.map(r => {
+					return {
+						attachment: Buffer.from(r.report.reportText),
+						name: r.fileName + ".txt",
+						title: r.fileName
+					}
+				})
+			}
+		}
+
+		if (respondToCrashText && crashTextParse && (explicit || autoAskForLogs)) {
+			const pasteGuid = crashTextParse.guid
+			const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
 			if (dupe) {
 				if (isFresh)
 					newDedupeRecords.push(dupe)
 				else if (dupe.responseReference)
 					referencedDupes.push(dupe.responseReference)
 			}
-			if (isFresh)
-				freshReports.push(r)
+
+			if (isFresh) {
+				summary.push(...findCrashInsights(crashTextParse, true))
+				addConsoleLogAsk(embedBuilder, verbose, pasteGuid, channelUrl)
+			}
 		}
 
-		if (freshReports.length > 0) {
-			respondToCrashText = false
-
-			if (freshReports.length === 1)
-				summary.push(...freshReports[0].report.insights)
-
-			response.files = freshReports.map(r => {
-				return {
-					attachment: Buffer.from(r.report.reportText),
-					name: r.fileName + ".txt",
-					title: r.fileName
-				}
-			})
-		}
-	}
-
-	if (respondToCrashText && crashTextParse && (explicit || autoAskForLogs)) {
-		const pasteGuid = crashTextParse.guid
-		const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
-		if (dupe) {
-			if (isFresh)
-				newDedupeRecords.push(dupe)
-			else if (dupe.responseReference)
-				referencedDupes.push(dupe.responseReference)
+		if (referencedDupes.length > 0) {
+			summary.push(createDedupeField(referencedDupes.join(" ")))
 		}
 
-		if (isFresh) {
-			summary.push(...findCrashInsights(crashTextParse, true))
-			addConsoleLogAsk(embedBuilder, verbose, pasteGuid, channelUrl)
-		}
-	}
+		if ((summary.length > 0 || embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) && replyTarget.reply) {
+			const preferChannelText = getChannelPreferenceText("bot_prefer_channel", channelUrl)
+			if (preferChannelText && !embedBuilder.data.description) {
+				embedBuilder.setDescription(preferChannelText)
+			}
+			finishEmbed(embedBuilder, summary, verbose)
+			response.embeds = [embedBuilder]
 
-	if (referencedDupes.length > 0) {
-		summary.push(createDedupeField(referencedDupes.join(" ")))
-	}
-
-	if ((summary.length > 0 || embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) && replyTarget.reply) {
-		const preferChannelText = getChannelPreferenceText("bot_prefer_channel", channelUrl)
-		if (preferChannelText && !embedBuilder.data.description) {
-			embedBuilder.setDescription(preferChannelText)
-		}
-		finishEmbed(embedBuilder, summary, verbose)
-		response.embeds = [embedBuilder]
-
-		try {
 			const sentMsg = await replyTarget.reply(response)
 			for (const r of newDedupeRecords) {
 				r.responseReference = sentMsg.url
 			}
 			return true
 		}
-		catch (e) {
-			console.error(e)
-		}
+	}
+	catch (e) {
+		console.error(e)
 	}
 
-	if (explicit && (config?.reactOnFailure ?? true)) {
-		const reactTarget = config?.retargetedFrom ?? replyTarget
-		if (reactTarget.react) {
-			try {
-				await reactTarget.react("<:vcd_hadron:1541892073958146199>")
-			}
-			catch (e) {
-				console.error(e)
-			}
-		}
-	}
 	return false
+}
+
+async function sendFailureReaction(msg: Message) {
+	try {
+		await msg.react("<:vcd_hadron:1541892073958146199>")
+	}
+	catch (e) {
+		console.error(e)
+	}
 }
 
 export async function askForLogs(message: Message) {
@@ -386,8 +384,12 @@ async function sendReportFromSnapshots(message: Message, explicit: boolean, conf
 }
 
 export async function sendReportOn(message: Message, explicit: boolean, config: ResponseConfig = undefined) {
-	return (await Promise.all([
+	const success = (await Promise.all([
 		sendReportFromMessage(message, explicit, config),
 		sendReportFromSnapshots(message, explicit, config),
 	])).some(r => r)
+	if (explicit && !success && (config?.reactOnFailure ?? true)) {
+		sendFailureReaction(config?.retargetedFrom ?? message)
+	}
+	return success
 }
