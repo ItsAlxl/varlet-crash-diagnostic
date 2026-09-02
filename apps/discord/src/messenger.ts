@@ -96,7 +96,7 @@ function addConsoleLogAsk(embedBuilder: EmbedBuilder, verbose: boolean, guid: st
 		? trMarkdown("bot_log_location_specify_log", { logNameEnd: getLogSuffix(guid) })
 		: ""
 	if (verbose) {
-		embedBuilder.setDescription(`${trText("bot_log_location_prefix_verbose")}
+		embedBuilder.setDescription(`${trMarkdown("bot_log_location_prefix_verbose")}
 
 ${trText("faq_log_location_steam_title")}
 \`${trText("faq_log_location_steam_path")}\`
@@ -120,7 +120,7 @@ ${trMarkdown("bot_log_location_suffix", { preferChannel: preferChannel, specifyL
 function createDedupeField(links: string) {
 	return {
 		name: trText("bot_deduped_title"),
-		value: trText("bot_deduped_desc", { dedupeLinks: links })
+		value: trMarkdown("bot_deduped_desc", { dedupeLinks: links })
 	}
 }
 
@@ -164,7 +164,7 @@ function finishEmbed(embedBuilder: EmbedBuilder, summary: SummaryField[] | undef
 		})
 		for (const s of trSummary) {
 			if (s.descTerse.length > MAX_FIELD_LENGTH)
-				s.descTerse = trText("bot_more_in_report_desc")
+				s.descTerse = trMarkdown("bot_more_in_report_desc")
 		}
 
 		let summaryLength = trSummary.reduce<number>((a, b) => a + getTranslatedSummaryLength(b, tryVerbose), 0)
@@ -173,7 +173,7 @@ function finishEmbed(embedBuilder: EmbedBuilder, summary: SummaryField[] | undef
 
 		const alertToExcluded: APIEmbedField = {
 			name: trText("bot_more_in_report_title"),
-			value: trText("bot_more_in_report_desc"),
+			value: trMarkdown("bot_more_in_report_desc"),
 		}
 
 		if (summaryLength > room) {
@@ -240,13 +240,13 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 				if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
 					embedBuilder.addFields({
 						name: trText("insight_guid_dumpfile_mismatch_title"),
-						value: trText("insight_guid_dumpfile_mismatch_desc")
+						value: trMarkdown("insight_guid_dumpfile_mismatch_desc")
 					})
 				}
 			} else if (autoAskForLogs) {
 				embedBuilder.addFields({
 					name: trText("insight_guid_dumpfile_useless_title"),
-					value: trText("insight_guid_dumpfile_useless_desc")
+					value: trMarkdown("insight_guid_dumpfile_useless_desc")
 				})
 			}
 		}
@@ -263,7 +263,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
 				embedBuilder.addFields({
 					name: trText("insight_guid_mismatch_title"),
-					value: trText(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
+					value: trMarkdown(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
 				})
 			}
 

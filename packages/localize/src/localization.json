@@ -80,7 +80,7 @@
 		"insight_guid_dumpfile_mismatch_title": "Crash dump doesn't have matching log",
 		"insight_guid_dumpfile_mismatch_desc": "You sent a crash dump without its corresponding console log. Crash dumps are not useful anyway, just send console logs.",
 		"insight_guid_dumpfile_useless_title": "Crash dumps are not useful",
-		"insight_guid_dumpfile_useless_desc": "You sent a crash dump, but all of the useful information is in the console logs. Instead of `<...>/Darktide/crash_dumps/`, look in `<...>/Darktide/console_logs/`",
+		"insight_guid_dumpfile_useless_desc": "You sent a crash dump, but all of the useful information is in the console logs. Instead of {{'<...>/Darktide/crash_dumps/' code}}, look in {{'<...>/Darktide/console_logs/' code}}",
 		"insight_none_title": "No insights :(",
 		"insight_none_desc_paste": "Specify the console log directory above to get more information.",
 		"insight_none_desc_paste_bot": "Ping me with a specific console log attached.",
