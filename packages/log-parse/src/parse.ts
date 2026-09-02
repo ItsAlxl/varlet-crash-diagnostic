@@ -1,14 +1,15 @@
 import { stringSimilarity } from "string-similarity-js"
 
-const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
-const rgxDumpName = /crash_dump(?:-\d+){4}(?:.\d+){2}-([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\.dmp/
-const rgxCrashMessage = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/
+const rgxGuid = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})/
+const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxGuid.source + /\.dmp/.source)
+const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/.source)
 const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
 const rgxEngineStack = /<<Callstack>>([\s\S]+?)<<\/Callstack>>/
-const rgxLuaEnd = /(?:<<Script Error>>([\s\S]+?)<<\/Script Error>>)?\s*<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\s\S]+?<<\/Lua Upvalues>>)\s*\[Log end\]/
+const rgxEngineEnd = /<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\s\S]+?<<\/Lua Upvalues>>)\s*\[Log end\]/
+const rgxLuaEnd = new RegExp(/<<Script Error>>([\s\S]+?)<<\/Script Error>>?\s*/.source + rgxEngineEnd.source)
 const rgxLuaAbruptEnd = /<<Script Error>>([\s\S]+?)<<\/Script Error>>\s*\[Log end\]/
 
 const rgxStackFunctions = /\[\d+\]\s(?:[^\/\n]+?\/)+?([^\/]+?)(?:\.lua)?:\d+:\s*in function ([^\n]+)/g
@@ -178,6 +179,7 @@ export function parseCallstack(logText: string) {
 	if (luaMatch) {
 		function parseCallstackLua(key: keyof (ParsedCallstack), idx: number) {
 			const match = luaMatch![idx]
+			console.log(key, match?.trim())
 			if (match)
 				p[key] = match.trim()
 		}

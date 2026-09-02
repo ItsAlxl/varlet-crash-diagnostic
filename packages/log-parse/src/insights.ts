@@ -258,7 +258,7 @@ const logInsights: LogInsight[] = [
 	new LogInsight(
 		"insight_no_crash_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
-			if (!callstack.luaError && !callstack.engineError)
+			if (!callstack.luaError && !callstack.luaStack && !callstack.engineError && !callstack.engineStack)
 				return "insight_no_crash_desc"
 		}
 	),
