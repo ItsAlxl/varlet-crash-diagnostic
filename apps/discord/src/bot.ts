@@ -57,12 +57,14 @@ function sendReportOnNewMessage(msg: Message, explicit: boolean, retargetedFrom:
 
 client.on(Events.MessageCreate, async (msg) => {
 	if (!msgIsMine(msg)) {
+		let isReplyToMe = false
 		let responded = false
 		if (replyRetargeting) {
 			const ref = msg.reference
 			if (ref && ref.type === MessageReferenceType.Default) {
 				const refMsg = await msg.fetchReference()
-				if (!msgPingsMe(refMsg) && !msgIsMine(refMsg)) {
+				isReplyToMe = msgIsMine(refMsg)
+				if (!msgPingsMe(refMsg) && !isReplyToMe) {
 					sendReportOnNewMessage(refMsg, true, msg)
 					responded = true
 				}
@@ -70,7 +72,7 @@ client.on(Events.MessageCreate, async (msg) => {
 		}
 
 		if (!responded)
-			sendReportOnNewMessage(msg, msgPingsMe(msg))
+			sendReportOnNewMessage(msg, msgPingsMe(msg) && !isReplyToMe)
 	}
 })
 
