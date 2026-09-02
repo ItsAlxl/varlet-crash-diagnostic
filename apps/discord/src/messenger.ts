@@ -29,6 +29,7 @@ type SummaryField = InsightResult | APIEmbedField
 type TrSummaryField = { title: string, descTerse: string, descVerbose?: string }
 
 const preferredChannelUrl = process.env.PREFERRED_CHANNEL
+const reactEmoji = process.env.REACT_EMOJI ?? "👀"
 let autoAskForLogs = false
 
 export function setAutoAskForLogs(autoAsk: boolean) {
@@ -338,11 +339,13 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 }
 
 async function sendFailureReaction(msg: Message) {
-	try {
-		await msg.react("<:vcd_hadron:1541892073958146199>")
-	}
-	catch (e) {
-		console.error(e)
+	if (reactEmoji) {
+		try {
+			await msg.react(reactEmoji)
+		}
+		catch (e) {
+			console.error(e)
+		}
 	}
 }
 
