@@ -64,7 +64,7 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 		if (fileName.endsWith(".txt") || fileName.endsWith(".log")) {
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
-				const fileText = await fileFetch.text()
+				const fileText = (await fileFetch.text()).trim()
 				if (isConsoleLogText(fileText)) {
 					const logReport = createLogReport(fileText, fileName)
 					const logGuid = logReport.guid

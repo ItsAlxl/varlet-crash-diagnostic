@@ -96,7 +96,7 @@ export async function displayLogFile(file: File) {
 	const fileName = file.name
 	fileLabel.innerText = fileName
 
-	const logText = await file.text()
+	const logText = (await file.text()).trim()
 	if (isConsoleLogText(logText)) {
 		const report = createLogReport(logText, fileName)
 		logGuid = report.guid
