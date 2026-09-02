@@ -49,7 +49,6 @@ function msgIsMine(msg: Message) {
 function sendReportOnNewMessage(msg: Message, explicit: boolean, retargetedFrom: Message | undefined = undefined) {
 	const isDm = msgIsDm(msg)
 	sendReportOn(msg, explicit, {
-		dedupeStrict: isDm ? DedupeStrictness.IgnoreDeduping : DedupeStrictness.Strict,
 		verbose: isDm,
 		retargetedFrom: retargetedFrom,
 	})

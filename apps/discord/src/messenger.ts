@@ -252,7 +252,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		}
 
 		const response: MessageReplyOptions = {}
-		const dedupeStrict = config?.dedupeStrict ?? DedupeStrictness.Strict
+		const dedupeStrict = isDm ? DedupeStrictness.IgnoreDeduping : (config?.dedupeStrict ?? DedupeStrictness.Strict)
 		const verbose = config?.verbose ?? false
 
 		const newDedupeRecords: DedupeRecord[] = []
