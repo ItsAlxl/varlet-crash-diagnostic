@@ -36,6 +36,8 @@ export type ParsedCallstack = {
 	engineStack?: string
 }
 
+type StackChain = [target: string, funcName: string]
+
 export type ParsedHookChain = {
 	target: string,
 	func: string,
@@ -80,8 +82,8 @@ export function hasInputCall(stack: string) {
 	return rgxInputCall.test(stack)
 }
 
-function parseStackChains(luaStack: string) {
-	const stackChains: string[][] = []
+export function parseStackChains(luaStack: string) {
+	const stackChains: StackChain[] = []
 	let chainTarget = ""
 	for (const match of luaStack.matchAll(rgxStackFunctions)) {
 		const script = match[1]
@@ -98,25 +100,44 @@ function parseStackChains(luaStack: string) {
 	return stackChains
 }
 
-export function parseHookChains(luaStack: string, logText: string) {
-	const stackChains = parseStackChains(luaStack)
+function findHookChain(stackChains: StackChain[], hookTarget: string, hookFunc: string): [index: number, confidence: number] {
+	const lowerTarget = hookTarget.toLowerCase()
+
+	let bestConfidence = -1
+	let bestIndex = -1
+	for (let i = 0; i < stackChains.length; i++) {
+		const [chainTarget, chainFunc] = stackChains[i]
+		if (chainFunc === hookFunc) {
+			const conf = stringSimilarity(lowerTarget, chainTarget.replaceAll("_", "").toLowerCase())
+			if (conf > bestConfidence) {
+				bestConfidence = conf
+				bestIndex = i
+			}
+		}
+	}
+
+	return [bestIndex, bestConfidence]
+}
+
+export function parseHookChains(stackChains: StackChain[], logText: string) {
 	const chains = new Map<string, ParsedHookChain & { idx: number }>()
 	for (const h of logText.matchAll(rgxHookNotification)) {
+		const hookTarget = h[3]
 		const hookFunc = h[2]
-		const chainIdx = stackChains.findIndex(c => hookFunc == c[1])
+		const [chainIdx, confidence] = findHookChain(stackChains, hookTarget, hookFunc)
 		if (chainIdx >= 0) {
 			const hookMod = h[1]
-			const hookTarget = h[3]
+			const confident = confidence > 0.9
 			const c = chains.get(hookTarget)
 			if (c) {
 				if (!c.mods.includes(hookMod))
 					c.mods.push(hookMod)
+				c.confident ||= confident
 			} else {
-				const squishedScript = stackChains[chainIdx][0].replaceAll("_", "")
 				chains.set(hookTarget, {
 					target: hookTarget,
 					func: hookFunc,
-					confident: stringSimilarity(squishedScript, hookTarget) > 0.9,
+					confident: confident,
 					mods: [hookMod],
 					idx: chainIdx
 				})
@@ -179,7 +200,6 @@ export function parseCallstack(logText: string) {
 	if (luaMatch) {
 		function parseCallstackLua(key: keyof (ParsedCallstack), idx: number) {
 			const match = luaMatch![idx]
-			console.log(key, match?.trim())
 			if (match)
 				p[key] = match.trim()
 		}
