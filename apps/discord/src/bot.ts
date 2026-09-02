@@ -55,7 +55,7 @@ function sendReportOnNewMessage(msg: Message, explicit: boolean, retargetedFrom:
 }
 
 client.on(Events.MessageCreate, async (msg) => {
-	if (!msgIsMine(msg)) {
+	if (!msgIsMine(msg) && !msg.interactionMetadata) {
 		let isReplyToMe = false
 		let responded = false
 		if (replyRetargeting) {
