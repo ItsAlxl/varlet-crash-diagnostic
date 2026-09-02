@@ -87,7 +87,8 @@ Localizations are found in the `packages/localize/src/localization.json` file. E
 Two forms of interpolation are supported:
 
 1. `"This is a {{variable}} value."` - `{{variable}}` is replaced by a contextual variable named `variable`.
-2. `"This is a {{'literal string'}} value."` - `{{'literal string'}}` is replaced by the text `literal string`. While this form of interpolation isn't useful on its own, it helps to declutter the translations file when the interpolated value has other attributes (see below).
+2. `"This is a {{%_ref}} value."` - `{{%_ref}}` is replaced by translating the key `_ref` with the same context and attributes (see below). This form of interpolation is only for the localizer's convenience to reduce duplicate text; keys that start with `_` are never used by the applications directly, so they do not need to be localized if you do not use them with this form of interpolation.
+3. `"This is a {{'literal string'}} value."` - `{{'literal string'}}` is replaced by the text `literal string`. While this form of interpolation isn't useful on its own, it helps to declutter the translations file when the interpolated value has other attributes (see below).
 
 Interpolations can have attributes after the translation key, which are only relevant when the result is sent to the DOM or sent as Markdown (and not just plaintext). Currently two attributes are supported:
 
