@@ -64,7 +64,7 @@ If you want the bot to automatically respond without being pinged to any message
 
 #### REACT_EMOJI
 
-If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with an emoji so that you know it's still active and responding. By default, the bot reacts with `:eyes:`, though this can be changed with the environment variable `REACT_EMOJI=emoji-id`. Consult the [discord.js docs fregarding valid emoji input](https://discordjs.guide/legacy/popular-topics/reactions) for information on how to supply other emojis.
+If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with an emoji so that you know it's still active and responding. By default, the bot reacts with `:eyes:`, though this can be changed with the environment variable `REACT_EMOJI=emoji-id`. Consult the [discord.js docs regarding valid emoji input](https://discordjs.guide/legacy/popular-topics/reactions) for information on how to supply other emojis.
 
 To disable the reaction behavior, simply revoke the bot's reaction permission in your Discord server.
 
