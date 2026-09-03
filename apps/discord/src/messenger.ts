@@ -29,6 +29,7 @@ type SummaryField = InsightResult | APIEmbedField
 type TrSummaryField = { title: string, descTerse: string, descVerbose?: string }
 
 const preferredChannelUrl = process.env.PREFERRED_CHANNEL
+const reactEmoji = process.env.REACT_EMOJI ?? "👀"
 let autoAskForLogs = false
 
 export function setAutoAskForLogs(autoAsk: boolean) {
@@ -63,7 +64,7 @@ async function parseMessage(msg: Message | MessageSnapshot) {
 		if (fileName.endsWith(".txt") || fileName.endsWith(".log")) {
 			const fileFetch = await fetch(attach.url)
 			if (fileFetch.ok) {
-				const fileText = await fileFetch.text()
+				const fileText = (await fileFetch.text()).trim()
 				if (isConsoleLogText(fileText)) {
 					const logReport = createLogReport(fileText, fileName)
 					const logGuid = logReport.guid
@@ -95,7 +96,7 @@ function addConsoleLogAsk(embedBuilder: EmbedBuilder, verbose: boolean, guid: st
 		? trMarkdown("bot_log_location_specify_log", { logNameEnd: getLogSuffix(guid) })
 		: ""
 	if (verbose) {
-		embedBuilder.setDescription(`${trText("bot_log_location_prefix_verbose")}
+		embedBuilder.setDescription(`${trMarkdown("bot_log_location_prefix_verbose")}
 
 ${trText("faq_log_location_steam_title")}
 \`${trText("faq_log_location_steam_path")}\`
@@ -119,7 +120,7 @@ ${trMarkdown("bot_log_location_suffix", { preferChannel: preferChannel, specifyL
 function createDedupeField(links: string) {
 	return {
 		name: trText("bot_deduped_title"),
-		value: trText("bot_deduped_desc", { dedupeLinks: links })
+		value: trMarkdown("bot_deduped_desc", { dedupeLinks: links })
 	}
 }
 
@@ -163,7 +164,7 @@ function finishEmbed(embedBuilder: EmbedBuilder, summary: SummaryField[] | undef
 		})
 		for (const s of trSummary) {
 			if (s.descTerse.length > MAX_FIELD_LENGTH)
-				s.descTerse = trText("bot_more_in_report_desc")
+				s.descTerse = trMarkdown("bot_more_in_report_desc")
 		}
 
 		let summaryLength = trSummary.reduce<number>((a, b) => a + getTranslatedSummaryLength(b, tryVerbose), 0)
@@ -172,7 +173,7 @@ function finishEmbed(embedBuilder: EmbedBuilder, summary: SummaryField[] | undef
 
 		const alertToExcluded: APIEmbedField = {
 			name: trText("bot_more_in_report_title"),
-			value: trText("bot_more_in_report_desc"),
+			value: trMarkdown("bot_more_in_report_desc"),
 		}
 
 		if (summaryLength > room) {
@@ -221,131 +222,131 @@ function getChannelPreferenceText(locKey: string, channelUrl: string | undefined
 }
 
 async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, config: ResponseConfig, replyTo: Message | undefined = undefined) {
-	const replyTarget = replyTo ?? msg
-	const channel = replyTarget?.channel
-	const isDm = channel?.type === ChannelType.DM
-	const channelUrl = isDm ? undefined : channel?.url
+	try {
+		const replyTarget = replyTo ?? msg
+		const channel = replyTarget?.channel
+		const isDm = channel?.type === ChannelType.DM
+		const channelUrl = isDm ? undefined : channel?.url
 
-	const components = await parseMessage(msg)
-	const reports = components.reports
-	const crashTextParse = components.crashTextParse
+		const components = await parseMessage(msg)
+		const reports = components.reports
+		const crashTextParse = components.crashTextParse
 
-	const embedBuilder = new EmbedBuilder()
-	const summary: SummaryField[] = []
+		const embedBuilder = new EmbedBuilder()
+		const summary: SummaryField[] = []
 
-	if (components.dumpGuids) {
-		if (reports) {
-			if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
+		if (components.dumpGuids) {
+			if (reports) {
+				if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
+					embedBuilder.addFields({
+						name: trText("insight_guid_dumpfile_mismatch_title"),
+						value: trMarkdown("insight_guid_dumpfile_mismatch_desc")
+					})
+				}
+			} else if (autoAskForLogs) {
 				embedBuilder.addFields({
-					name: trText("insight_guid_dumpfile_mismatch_title"),
-					value: trText("insight_guid_dumpfile_mismatch_desc")
+					name: trText("insight_guid_dumpfile_useless_title"),
+					value: trMarkdown("insight_guid_dumpfile_useless_desc")
 				})
 			}
-		} else if (autoAskForLogs) {
-			embedBuilder.addFields({
-				name: trText("insight_guid_dumpfile_useless_title"),
-				value: trText("insight_guid_dumpfile_useless_desc")
-			})
-		}
-	}
-
-	const response: MessageReplyOptions = {}
-	const dedupeStrict = config?.dedupeStrict ?? DedupeStrictness.Strict
-	const verbose = config?.verbose ?? false
-
-	const newDedupeRecords: DedupeRecord[] = []
-	const referencedDupes: string[] = []
-
-	let respondToCrashText = true
-	if (reports && explicit) {
-		if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
-			embedBuilder.addFields({
-				name: trText("insight_guid_mismatch_title"),
-				value: trText(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
-			})
 		}
 
-		const freshReports: AttachmentReport[] = []
-		for (const r of reports) {
-			const [isFresh, dupe] = testLogFreshness(r.report.guid, dedupeStrict)
+		const response: MessageReplyOptions = {}
+		const dedupeStrict = isDm ? DedupeStrictness.IgnoreDeduping : (config?.dedupeStrict ?? DedupeStrictness.Strict)
+		const verbose = config?.verbose ?? false
+
+		const newDedupeRecords: DedupeRecord[] = []
+		const referencedDupes: string[] = []
+
+		let respondToCrashText = true
+		if (reports && explicit) {
+			if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
+				embedBuilder.addFields({
+					name: trText("insight_guid_mismatch_title"),
+					value: trMarkdown(reports.length === 1 ? "insight_guid_mismatch_desc" : "insight_guid_mismatch_desc_pl")
+				})
+			}
+
+			const freshReports: AttachmentReport[] = []
+			for (const r of reports) {
+				const [isFresh, dupe] = testLogFreshness(r.report.guid, dedupeStrict)
+				if (dupe) {
+					if (isFresh)
+						newDedupeRecords.push(dupe)
+					else if (dupe.responseReference)
+						referencedDupes.push(dupe.responseReference)
+				}
+				if (isFresh)
+					freshReports.push(r)
+			}
+
+			if (freshReports.length > 0) {
+				respondToCrashText = false
+
+				if (freshReports.length === 1)
+					summary.push(...freshReports[0].report.insights)
+
+				response.files = freshReports.map(r => {
+					return {
+						attachment: Buffer.from(r.report.reportText),
+						name: r.fileName + ".txt",
+						title: r.fileName
+					}
+				})
+			}
+		}
+
+		if (respondToCrashText && crashTextParse && (explicit || autoAskForLogs)) {
+			const pasteGuid = crashTextParse.guid
+			const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
 			if (dupe) {
 				if (isFresh)
 					newDedupeRecords.push(dupe)
 				else if (dupe.responseReference)
 					referencedDupes.push(dupe.responseReference)
 			}
-			if (isFresh)
-				freshReports.push(r)
+
+			if (isFresh) {
+				summary.push(...findCrashInsights(crashTextParse, true))
+				addConsoleLogAsk(embedBuilder, verbose, pasteGuid, channelUrl)
+			}
 		}
 
-		if (freshReports.length > 0) {
-			respondToCrashText = false
-
-			if (freshReports.length === 1)
-				summary.push(...freshReports[0].report.insights)
-
-			response.files = freshReports.map(r => {
-				return {
-					attachment: Buffer.from(r.report.reportText),
-					name: r.fileName + ".txt",
-					title: r.fileName
-				}
-			})
-		}
-	}
-
-	if (respondToCrashText && crashTextParse && (explicit || autoAskForLogs)) {
-		const pasteGuid = crashTextParse.guid
-		const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
-		if (dupe) {
-			if (isFresh)
-				newDedupeRecords.push(dupe)
-			else if (dupe.responseReference)
-				referencedDupes.push(dupe.responseReference)
+		if (referencedDupes.length > 0) {
+			summary.push(createDedupeField(referencedDupes.join(" ")))
 		}
 
-		if (isFresh) {
-			summary.push(...findCrashInsights(crashTextParse, true))
-			addConsoleLogAsk(embedBuilder, verbose, pasteGuid, channelUrl)
-		}
-	}
+		if ((summary.length > 0 || embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) && replyTarget.reply) {
+			const preferChannelText = getChannelPreferenceText("bot_prefer_channel", channelUrl)
+			if (preferChannelText && !embedBuilder.data.description) {
+				embedBuilder.setDescription(preferChannelText)
+			}
+			finishEmbed(embedBuilder, summary, verbose)
+			response.embeds = [embedBuilder]
 
-	if (referencedDupes.length > 0) {
-		summary.push(createDedupeField(referencedDupes.join(" ")))
-	}
-
-	if ((summary.length > 0 || embedBuilder.length > 0 || (response.files?.length ?? 0) > 0) && replyTarget.reply) {
-		const preferChannelText = getChannelPreferenceText("bot_prefer_channel", channelUrl)
-		if (preferChannelText && !embedBuilder.data.description) {
-			embedBuilder.setDescription(preferChannelText)
-		}
-		finishEmbed(embedBuilder, summary, verbose)
-		response.embeds = [embedBuilder]
-
-		try {
 			const sentMsg = await replyTarget.reply(response)
 			for (const r of newDedupeRecords) {
 				r.responseReference = sentMsg.url
 			}
 			return true
 		}
+	}
+	catch (e) {
+		console.error(e)
+	}
+
+	return false
+}
+
+async function sendFailureReaction(msg: Message) {
+	if (reactEmoji) {
+		try {
+			await msg.react(reactEmoji)
+		}
 		catch (e) {
 			console.error(e)
 		}
 	}
-
-	if (explicit && (config?.reactOnFailure ?? true)) {
-		const reactTarget = config?.retargetedFrom ?? replyTarget
-		if (reactTarget.react) {
-			try {
-				await reactTarget.react("<:vcd_hadron:1541892073958146199>")
-			}
-			catch (e) {
-				console.error(e)
-			}
-		}
-	}
-	return false
 }
 
 export async function askForLogs(message: Message) {
@@ -386,8 +387,12 @@ async function sendReportFromSnapshots(message: Message, explicit: boolean, conf
 }
 
 export async function sendReportOn(message: Message, explicit: boolean, config: ResponseConfig = undefined) {
-	return (await Promise.all([
+	const success = (await Promise.all([
 		sendReportFromMessage(message, explicit, config),
 		sendReportFromSnapshots(message, explicit, config),
 	])).some(r => r)
+	if (explicit && !success && (config?.reactOnFailure ?? true)) {
+		sendFailureReaction(config?.retargetedFrom ?? message)
+	}
+	return success
 }

@@ -1,5 +1,5 @@
 import { type TranslateContext, trText } from "@varlet-crash-diagnostic/localize/all"
-import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, parseStackChains, type ParsedCallstack, type ParsedCrashText } from "./parse"
 import { version } from "../package.json"
 
 export const INSIGHTS_VERSION = version
@@ -258,8 +258,8 @@ const logInsights: LogInsight[] = [
 	new LogInsight(
 		"insight_no_crash_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
-			if (!callstack.luaError && !callstack.engineError)
-				return "insight_no_crash_desc"
+			if (!callstack.luaError && !callstack.luaStack && !callstack.engineError && !callstack.engineStack)
+				return logText.endsWith("[Log end]") ? "insight_no_crash_desc_graceful" : "insight_no_crash_desc_running"
 		}
 	),
 	new LogInsight(
@@ -322,7 +322,8 @@ const logInsights: LogInsight[] = [
 		"insight_hook_chain_title",
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
 			if (callstack.luaStack) {
-				const chains = parseHookChains(callstack.luaStack, logText)
+				const stackChains = parseStackChains(callstack.luaStack)
+				const chains = parseHookChains(stackChains, logText)
 				if (chains.length > 0) {
 					const solid = chains.filter(c => c.confident).map(c => c.target + "::" + c.func + " - " + c.mods.join(", ")).join("\n")
 					const shaky = chains.filter(c => !c.confident).map(c => c.target + "::" + c.func + " - " + c.mods.join(", ")).join("\n")
@@ -334,11 +335,11 @@ const logInsights: LogInsight[] = [
 							: (hasSolids
 								? "insight_hook_chain_desc_solid_only"
 								: "insight_hook_chain_desc_shaky_only"),
-						context: { solid: solid, shaky: shaky },
+						context: { solid: solid, shaky: shaky, chains: stackChains.map(c => c.join("::")).join("\n") },
 						descTerse: onlySolids
 							? "insight_hook_chain_desc_both_terse"
 							: (hasSolids
-								? "insight_hook_chain_desc_solid_only"
+								? "insight_hook_chain_desc_solid_only_terse"
 								: "insight_hook_chain_desc_shaky_only_terse"),
 					}
 				}

@@ -48,8 +48,6 @@ The bot parses console log files and crash popup text. You can get a response fr
 4. Send a message containing crash popup text, regardless of it pings the bot (see `AUTO_ASK_FOR_LOGS` below)
 5. DM the bot with the crash info
 
-If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with a custom emoji so that you know it's still active and responding. Simply revoking reaction permission disables this behavior.
-
 The bot consumes several environment variables for configuration. Both `npm run dev` and `npm run bot` read environment variables from a file named `.env` in the `apps/discord/` directory. Alternatively, you can set the environment variables normally and run the bot with `node apps/discord/dist/bot.js`
 
 #### DISCORD_TOKEN
@@ -63,6 +61,12 @@ The content of messages that do not ping the bot is [considered privileged](http
 #### AUTO_ASK_FOR_LOGS
 
 If you want the bot to automatically respond without being pinged to any message that contains crash popup text or crash dumps without any accompanying console logs, you can set the environment variable `AUTO_ASK_FOR_LOGS=true`; note that this requires privileged message content permission like `REPLY_RETARGETING`.
+
+#### REACT_EMOJI
+
+If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with an emoji so that you know it's still active and responding. By default, the bot reacts with `:eyes:`, though this can be changed with the environment variable `REACT_EMOJI=emoji-id`. Consult the [discord.js docs fregarding valid emoji input](https://discordjs.guide/legacy/popular-topics/reactions) for information on how to supply other emojis.
+
+To disable the reaction behavior, simply revoke the bot's reaction permission in your Discord server.
 
 #### DISCORD_APP_ID
 
@@ -83,7 +87,8 @@ Localizations are found in the `packages/localize/src/localization.json` file. E
 Two forms of interpolation are supported:
 
 1. `"This is a {{variable}} value."` - `{{variable}}` is replaced by a contextual variable named `variable`.
-2. `"This is a {{'literal string'}} value."` - `{{'literal string'}}` is replaced by the text `literal string`. While this form of interpolation isn't useful on its own, it helps to declutter the translations file when the interpolated value has other attributes (see below).
+2. `"This is a {{%_ref}} value."` - `{{%_ref}}` is replaced by translating the key `_ref` with the same context and attributes (see below). This form of interpolation is only for the localizer's convenience to reduce duplicate text; keys that start with `_` are never used by the applications directly, so they do not need to be localized if you do not use them with this form of interpolation.
+3. `"This is a {{'literal string'}} value."` - `{{'literal string'}}` is replaced by the text `literal string`. While this form of interpolation isn't useful on its own, it helps to declutter the translations file when the interpolated value has other attributes (see below).
 
 Interpolations can have attributes after the translation key, which are only relevant when the result is sent to the DOM or sent as Markdown (and not just plaintext). Currently two attributes are supported:
 

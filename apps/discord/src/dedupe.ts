@@ -9,7 +9,7 @@ export enum DedupeStrictness {
 	IgnoreDeduping,
 }
 
-type DedupeResult = [boolean, DedupeRecord | undefined]
+type DedupeResult = [isFresh: boolean, record: DedupeRecord | undefined]
 
 const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
 const dedupeHistoryLogs: DedupeRecord[] = []

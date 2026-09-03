@@ -1,14 +1,15 @@
 import { stringSimilarity } from "string-similarity-js"
 
-const rgxGuid = /[\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12}/
-const rgxDumpName = /crash_dump(?:-\d+){4}(?:.\d+){2}-([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\.dmp/
-const rgxCrashMessage = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/
+const rgxGuid = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})/
+const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxGuid.source + /\.dmp/.source)
+const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/.source)
 const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
 const rgxEngineStack = /<<Callstack>>([\s\S]+?)<<\/Callstack>>/
-const rgxLuaEnd = /(?:<<Script Error>>([\s\S]+?)<<\/Script Error>>)?\s*<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\s\S]+?<<\/Lua Upvalues>>)\s*\[Log end\]/
+const rgxEngineEnd = /<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\s\S]+?<<\/Lua Upvalues>>)\s*\[Log end\]/
+const rgxLuaEnd = new RegExp(/<<Script Error>>([\s\S]+?)<<\/Script Error>>?\s*/.source + rgxEngineEnd.source)
 const rgxLuaAbruptEnd = /<<Script Error>>([\s\S]+?)<<\/Script Error>>\s*\[Log end\]/
 
 const rgxStackFunctions = /\[\d+\]\s(?:[^\/\n]+?\/)+?([^\/]+?)(?:\.lua)?:\d+:\s*in function ([^\n]+)/g
@@ -34,6 +35,8 @@ export type ParsedCallstack = {
 	engineError?: string,
 	engineStack?: string
 }
+
+type StackChain = [target: string, funcName: string]
 
 export type ParsedHookChain = {
 	target: string,
@@ -79,8 +82,8 @@ export function hasInputCall(stack: string) {
 	return rgxInputCall.test(stack)
 }
 
-function parseStackChains(luaStack: string) {
-	const stackChains: string[][] = []
+export function parseStackChains(luaStack: string) {
+	const stackChains: StackChain[] = []
 	let chainTarget = ""
 	for (const match of luaStack.matchAll(rgxStackFunctions)) {
 		const script = match[1]
@@ -97,25 +100,44 @@ function parseStackChains(luaStack: string) {
 	return stackChains
 }
 
-export function parseHookChains(luaStack: string, logText: string) {
-	const stackChains = parseStackChains(luaStack)
+function findHookChain(stackChains: StackChain[], hookTarget: string, hookFunc: string): [index: number, confidence: number] {
+	const lowerTarget = hookTarget.toLowerCase()
+
+	let bestConfidence = -1
+	let bestIndex = -1
+	for (let i = 0; i < stackChains.length; i++) {
+		const [chainTarget, chainFunc] = stackChains[i]
+		if (chainFunc === hookFunc) {
+			const conf = stringSimilarity(lowerTarget, chainTarget.replaceAll("_", "").toLowerCase())
+			if (conf > bestConfidence) {
+				bestConfidence = conf
+				bestIndex = i
+			}
+		}
+	}
+
+	return [bestIndex, bestConfidence]
+}
+
+export function parseHookChains(stackChains: StackChain[], logText: string) {
 	const chains = new Map<string, ParsedHookChain & { idx: number }>()
 	for (const h of logText.matchAll(rgxHookNotification)) {
+		const hookTarget = h[3]
 		const hookFunc = h[2]
-		const chainIdx = stackChains.findIndex(c => hookFunc == c[1])
+		const [chainIdx, confidence] = findHookChain(stackChains, hookTarget, hookFunc)
 		if (chainIdx >= 0) {
 			const hookMod = h[1]
-			const hookTarget = h[3]
+			const confident = confidence > 0.9
 			const c = chains.get(hookTarget)
 			if (c) {
 				if (!c.mods.includes(hookMod))
 					c.mods.push(hookMod)
+				c.confident ||= confident
 			} else {
-				const squishedScript = stackChains[chainIdx][0].replaceAll("_", "")
 				chains.set(hookTarget, {
 					target: hookTarget,
 					func: hookFunc,
-					confident: stringSimilarity(squishedScript, hookTarget) > 0.9,
+					confident: confident,
 					mods: [hookMod],
 					idx: chainIdx
 				})

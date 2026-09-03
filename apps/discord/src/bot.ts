@@ -49,20 +49,21 @@ function msgIsMine(msg: Message) {
 function sendReportOnNewMessage(msg: Message, explicit: boolean, retargetedFrom: Message | undefined = undefined) {
 	const isDm = msgIsDm(msg)
 	sendReportOn(msg, explicit, {
-		dedupeStrict: isDm ? DedupeStrictness.IgnoreDeduping : DedupeStrictness.Strict,
 		verbose: isDm,
 		retargetedFrom: retargetedFrom,
 	})
 }
 
 client.on(Events.MessageCreate, async (msg) => {
-	if (!msgIsMine(msg)) {
+	if (!msgIsMine(msg) && !msg.interactionMetadata) {
+		let isReplyToMe = false
 		let responded = false
 		if (replyRetargeting) {
 			const ref = msg.reference
 			if (ref && ref.type === MessageReferenceType.Default) {
 				const refMsg = await msg.fetchReference()
-				if (!msgPingsMe(refMsg) && !msgIsMine(refMsg)) {
+				isReplyToMe = msgIsMine(refMsg)
+				if (!msgPingsMe(refMsg) && !isReplyToMe) {
 					sendReportOnNewMessage(refMsg, true, msg)
 					responded = true
 				}
@@ -70,7 +71,7 @@ client.on(Events.MessageCreate, async (msg) => {
 		}
 
 		if (!responded)
-			sendReportOnNewMessage(msg, msgPingsMe(msg))
+			sendReportOnNewMessage(msg, msgPingsMe(msg) && !isReplyToMe)
 	}
 })
 

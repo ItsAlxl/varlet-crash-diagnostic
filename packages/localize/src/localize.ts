@@ -5,7 +5,7 @@ type TranslatedTuple = { text: string, attributes?: Map<string, string> }
 export type TranslatedParagraph = TranslatedTuple[]
 export type TranslateContext = { [k: string]: string | number } | undefined
 
-const rgxInterpolation = /{{\s*(?:'([^}]+)'|(\S+)\b)([^}]*?)}}/g
+const rgxInterpolation = /{{\s*(?:%(\S+)\b|'([^}]+)'|(\S+)\b)([^}]*?)}}/g
 const VALID_LINKS: TranslateContext = {
 	alxl: "https://itsalxl.com",
 	repo: "https://github.com/ItsAlxl/varlet-crash-diagnostic",
@@ -94,7 +94,7 @@ export function getCurrentLocaleKey() {
 	return localeKey
 }
 
-function translate(key: string, locale: string, ctx: TranslateContext) {
+function translate(key: string, locale: string, ctx: TranslateContext, inheritedAttrs: Map<string, string> | undefined = undefined) {
 	let localization = L10N[locale]
 	if (!localization.hasOwnProperty(key)) {
 		if (!L10N[fallbackLocaleKey].hasOwnProperty(key))
@@ -118,9 +118,9 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 				}
 				cursor = terpIdx + terp[0].length
 
-				let tuple: TranslatedTuple = { text: "" }
+				let tuple: TranslatedTuple = { text: "", attributes: inheritedAttrs }
 
-				const terpAttrs = terp[3]
+				const terpAttrs = terp[4]
 				if (terpAttrs && terpAttrs.length > 0) {
 					const attrMap = new Map<string, string>()
 					for (const attr of terpAttrs.split(" ")) {
@@ -136,35 +136,41 @@ function translate(key: string, locale: string, ctx: TranslateContext) {
 					tuple.attributes = attrMap
 				}
 
-				const terpLiteral = terp[1]
-				if (terpLiteral) {
-					tuple.text = terpLiteral
-				}
-
-				const terpContextual = terp[2]
-				if (terpContextual) {
-					if (terpContextual.startsWith("link=")) {
-						const linkSplit = terpContextual.split("=")
-						if (!tuple.attributes) {
-							tuple.attributes = new Map<string, string>()
-						}
-						tuple.attributes.set(linkSplit[0], linkSplit[1])
-						tuple.text = getLinkUrl(linkSplit[1])
-					} else {
-						tuple.text = (ctx ? ctx[terpContextual]?.toString() : undefined)
-							?? ("<missing ctx: " + terpContextual + ">")
+				const terpRef = terp[1]
+				if (terpRef) {
+					for (const p of translate(terpRef, locale, ctx, tuple.attributes))
+						paragraphResults.push(...p)
+				} else {
+					const terpLiteral = terp[2]
+					if (terpLiteral) {
+						tuple.text = terpLiteral
 					}
-				}
 
-				paragraphResults.push(tuple)
+					const terpContextual = terp[3]
+					if (terpContextual) {
+						if (terpContextual.startsWith("link=")) {
+							const linkSplit = terpContextual.split("=")
+							if (!tuple.attributes) {
+								tuple.attributes = new Map<string, string>()
+							}
+							tuple.attributes.set(linkSplit[0], linkSplit[1])
+							tuple.text = getLinkUrl(linkSplit[1])
+						} else {
+							tuple.text = (ctx ? ctx[terpContextual]?.toString() : undefined)
+								?? ("<missing ctx: " + terpContextual + ">")
+						}
+					}
+
+					paragraphResults.push(tuple)
+				}
 			}
 
 			const pgEnd = pg.length
 			if (pgEnd > cursor) {
-				paragraphResults.push({ text: pg.substring(cursor, pgEnd) })
+				paragraphResults.push({ text: pg.substring(cursor, pgEnd), attributes: inheritedAttrs })
 			}
 		} else {
-			paragraphResults.push({ text: pg })
+			paragraphResults.push({ text: pg, attributes: inheritedAttrs })
 		}
 
 		results.push(paragraphResults)
