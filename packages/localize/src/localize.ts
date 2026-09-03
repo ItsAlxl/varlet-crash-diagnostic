@@ -138,7 +138,6 @@ function translate(key: string, locale: string, ctx: TranslateContext, inherited
 
 				const terpRef = terp[1]
 				if (terpRef) {
-					console.log(tuple.attributes)
 					for (const p of translate(terpRef, locale, ctx, tuple.attributes))
 						paragraphResults.push(...p)
 				} else {
