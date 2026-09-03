@@ -237,7 +237,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 
 		if (components.dumpGuids) {
 			if (reports) {
-				if (explicit && components.dumpGuids.some(guid => reports.some(r => r.report.guid === guid))) {
+				if (explicit && components.dumpGuids.some(guid => !reports.some(r => r.report.guid === guid))) {
 					embedBuilder.addFields({
 						name: trText("insight_guid_dumpfile_mismatch_title"),
 						value: trMarkdown("insight_guid_dumpfile_mismatch_desc")
