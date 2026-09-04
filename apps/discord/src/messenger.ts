@@ -124,8 +124,8 @@ function createDedupeField(links: string) {
 	}
 }
 
-function isFieldSummary(sf: any): sf is APIEmbedField {
-	return sf.value !== undefined
+function isFieldSummary(sf: SummaryField): sf is APIEmbedField {
+	return (sf as any).value !== undefined
 }
 
 function getTranslatedSummaryLength(s: TrSummaryField, verbose: boolean) {
@@ -231,13 +231,14 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		const components = await parseMessage(msg)
 		const reports = components.reports
 		const crashTextParse = components.crashTextParse
+		const dumpGuids = components.dumpGuids
 
 		const embedBuilder = new EmbedBuilder()
 		const summary: SummaryField[] = []
 
-		if (components.dumpGuids) {
+		if (dumpGuids) {
 			if (reports) {
-				if (explicit && components.dumpGuids.some(guid => !reports.some(r => r.report.guid === guid))) {
+				if (explicit && dumpGuids.some(guid => !reports.some(r => r.report.guid === guid))) {
 					embedBuilder.addFields({
 						name: trText("insight_guid_dumpfile_mismatch_title"),
 						value: trMarkdown("insight_guid_dumpfile_mismatch_desc")
@@ -258,7 +259,6 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		const newDedupeRecords: DedupeRecord[] = []
 		const referencedDupes: string[] = []
 
-		let respondToCrashText = true
 		if (reports && explicit) {
 			if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
 				embedBuilder.addFields({
@@ -281,8 +281,6 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			}
 
 			if (freshReports.length > 0) {
-				respondToCrashText = false
-
 				if (freshReports.length === 1)
 					summary.push(...freshReports[0].report.insights)
 
@@ -296,7 +294,7 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			}
 		}
 
-		if (respondToCrashText && crashTextParse && (explicit || autoAskForLogs)) {
+		if (!reports && crashTextParse && (explicit || autoAskForLogs)) {
 			const pasteGuid = crashTextParse.guid
 			const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
 			if (dupe) {
