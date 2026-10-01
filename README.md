@@ -64,7 +64,7 @@ If you want the bot to automatically respond without being pinged to any message
 
 #### REACT_EMOJI
 
-If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with an emoji so that you know it's still active and responding. By default, the bot reacts with `:eyes:`, though this can be changed with the environment variable `REACT_EMOJI=emoji-id`. Consult the [discord.js docs fregarding valid emoji input](https://discordjs.guide/legacy/popular-topics/reactions) for information on how to supply other emojis.
+If explicitly invoked to respond to a message that does not contain any crash info, the bot will instead react with an emoji so that you know it's still active and responding. By default, the bot reacts with `:eyes:`, though this can be changed with the environment variable `REACT_EMOJI=emoji-id`. Consult the [discord.js docs regarding valid emoji input](https://discordjs.guide/legacy/popular-topics/reactions) for information on how to supply other emojis.
 
 To disable the reaction behavior, simply revoke the bot's reaction permission in your Discord server.
 
@@ -84,7 +84,7 @@ In order to prevent the bot from generating responses to the same info in a shor
 
 Localizations are found in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, its `en` value is used as a fallback. Note that the `bot_cmd_*_title` values must be 32 characters or less; this is a limitation from Discord.
 
-Two forms of interpolation are supported:
+The following forms of interpolation are supported:
 
 1. `"This is a {{variable}} value."` - `{{variable}}` is replaced by a contextual variable named `variable`.
 2. `"This is a {{%_ref}} value."` - `{{%_ref}}` is replaced by translating the key `_ref` with the same context and attributes (see below). This form of interpolation is only for the localizer's convenience to reduce duplicate text; keys that start with `_` are never used by the applications directly, so they do not need to be localized if you do not use them with this form of interpolation.

@@ -39,6 +39,8 @@
 		"report_text_title": "Report Text",
 		"report_text_desc": "As the report is obnoxiously long, you should try to send it as a file if you can. Only send the text on its own if sharing the file is not possible.",
 		"report_copy": "Copy Text",
+		"insight_deadlock_title": "Deadlock",
+		"insight_deadlock_desc": "Deadlock errors are extremely hard to trace. If the error message doesn't have any advice and doesn't name a specific mod, it's likely nothing else can be gleaned from this crash. Reading/writing a lot of files can cause deadlocks, so try disabling any mods that do that.",
 		"insight_dxgi_title": "GPU crash (not mod-related)",
 		"insight_dxgi_desc": "This is a GPU crash, which is a problem with the base game. Some people have reported success in rolling back to older drivers. Other potential fixes can be found here: {{link=dxgi}}",
 		"insight_oom_title": "Out-of-memory crash",

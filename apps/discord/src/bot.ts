@@ -56,22 +56,21 @@ function sendReportOnNewMessage(msg: Message, explicit: boolean, retargetedFrom:
 
 client.on(Events.MessageCreate, async (msg) => {
 	if (!msgIsMine(msg) && !msg.interactionMetadata) {
+		const ref = msg.reference
+		let isReply = ref && ref.type === MessageReferenceType.Default
+		let isPingToMe = msgPingsMe(msg)
+
 		let isReplyToMe = false
-		let responded = false
-		if (replyRetargeting) {
-			const ref = msg.reference
-			if (ref && ref.type === MessageReferenceType.Default) {
-				const refMsg = await msg.fetchReference()
-				isReplyToMe = msgIsMine(refMsg)
-				if (!msgPingsMe(refMsg) && !isReplyToMe) {
-					sendReportOnNewMessage(refMsg, true, msg)
-					responded = true
-				}
+		if (isReply) {
+			const refMsg = await msg.fetchReference()
+			isReplyToMe = msgIsMine(refMsg)
+			if (replyRetargeting && !isReplyToMe && isPingToMe && !msgPingsMe(refMsg)) {
+				sendReportOnNewMessage(refMsg, true, msg)
+				return
 			}
 		}
 
-		if (!responded)
-			sendReportOnNewMessage(msg, msgPingsMe(msg) && !isReplyToMe)
+		sendReportOnNewMessage(msg, isReplyToMe || msgPingsMe(msg))
 	}
 })
 
