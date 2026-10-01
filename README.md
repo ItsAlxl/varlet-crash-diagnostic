@@ -84,7 +84,7 @@ In order to prevent the bot from generating responses to the same info in a shor
 
 Localizations are found in the `packages/localize/src/localization.json` file. Each locale *must* have a `locale_name` key, the value of which is the native name of the language. Otherwise, if a key is not present in a specific locale, its `en` value is used as a fallback. Note that the `bot_cmd_*_title` values must be 32 characters or less; this is a limitation from Discord.
 
-Two forms of interpolation are supported:
+The following forms of interpolation are supported:
 
 1. `"This is a {{variable}} value."` - `{{variable}}` is replaced by a contextual variable named `variable`.
 2. `"This is a {{%_ref}} value."` - `{{%_ref}}` is replaced by translating the key `_ref` with the same context and attributes (see below). This form of interpolation is only for the localizer's convenience to reduce duplicate text; keys that start with `_` are never used by the applications directly, so they do not need to be localized if you do not use them with this form of interpolation.
