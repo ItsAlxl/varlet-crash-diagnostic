@@ -38,9 +38,9 @@ function createLocaleOption(key: string, name: string) {
 	return li
 }
 
-const localOptions = getAllLocaleNames().map(loc => createLocaleOption(loc[0], loc[1]))
-if (localOptions.length > 1)
-	languageList?.replaceChildren(...getAllLocaleNames().map(loc => createLocaleOption(loc[0], loc[1])))
+const localeOptions = getAllLocaleNames().map(loc => createLocaleOption(loc[0], loc[1]))
+if (localeOptions.length > 1)
+	languageList?.replaceChildren(...localeOptions)
 else
 	languageMenu?.remove()
 
