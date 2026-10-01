@@ -203,6 +203,12 @@ function insightPageFile(message: string) {
 	}
 }
 
+function insightDeadlock(message: string) {
+	if (message.includes("Deadlock detected")) {
+		return "insight_deadlock_desc"
+	}
+}
+
 const crashInsights: CrashInsight[] = [
 	new CrashInsight(
 		"insight_dxgi_title",
@@ -232,6 +238,12 @@ const crashInsights: CrashInsight[] = [
 		"insight_crash_message_title",
 		(crash: ParsedCrashText) => {
 			return insightCrashMessageMod(crash.message)
+		}
+	),
+	new CrashInsight(
+		"insight_deadlock_title",
+		(crash: ParsedCrashText) => {
+			return insightDeadlock(crash.message)
 		}
 	),
 ]
@@ -291,6 +303,12 @@ const logInsights: LogInsight[] = [
 		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
 			if (callstack.luaStack && callstack.luaError)
 				return insightCrashMessageMod(callstack.luaError, hasInputCall(callstack.luaStack) && comparesMismatchedTypes(callstack.luaError))
+		}
+	),
+	new LogInsight(
+		"insight_deadlock_title",
+		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+			return insightDeadlock(callstack.engineError ?? "") ?? insightDeadlock(callstack.luaError ?? "")
 		}
 	),
 	new LogInsight(
