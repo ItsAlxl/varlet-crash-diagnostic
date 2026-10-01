@@ -319,8 +319,11 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			if (preferChannelText && !embedBuilder.data.description) {
 				embedBuilder.setDescription(preferChannelText)
 			}
-			finishEmbed(embedBuilder, summary, verbose)
-			response.embeds = [embedBuilder]
+
+			if (summary.length > 0) {
+				finishEmbed(embedBuilder, summary, verbose)
+				response.embeds = [embedBuilder]
+			}
 
 			const sentMsg = await replyTarget.reply(response)
 			for (const r of newDedupeRecords) {
