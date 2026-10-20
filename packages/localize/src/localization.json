@@ -2,6 +2,11 @@
 	"en": {
 		"locale_name": "English",
 		"varlet_tool_title": "Varlet Crash Diagnostic",
+		"privacy_policy_title": "Privacy Policy",
+		"privacy_policy_title_web": "Web App",
+		"privacy_policy_desc_web": "All work is done entirely on your local machine. The tool never sends any information whatsoever to any server.",
+		"privacy_policy_title_discord": "Discord Bot",
+		"privacy_policy_desc_discord": "The bot parses your console log and temporarily remembers log IDs (which are not personally identifiable) to prevent re-parsing recent logs. Other than that, no information is ever stored, saved, remembered, transmitted to a 3rd party, or otherwise tracked.",
 		"tip_donate": "Gimme your money plz",
 		"tip_source": "Source Code",
 		"tip_translate": "Change Language",
