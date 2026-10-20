@@ -1,6 +1,6 @@
 {
 	"name": "@varlet-crash-diagnostic/localize",
-	"version": "2026-10-01",
+	"version": "2026-10-19",
 	"type": "module",
 	"scripts": {
 		"dev": "tsc --watch",
