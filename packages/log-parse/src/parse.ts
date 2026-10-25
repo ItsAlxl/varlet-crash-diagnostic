@@ -275,7 +275,7 @@ export function parseLoadOrder(logText: string) {
 export function parseCallstack(logText: string) {
 	const p: ParsedCallstack = {}
 
-	function parseCallstackLua(matches: RegExpExecArray, key: keyof (ParsedCallstack), idx: number) {
+	function parseCallstackMatch(matches: RegExpExecArray, idx: number, key: keyof (ParsedCallstack)) {
 		const match = matches![idx]
 		if (match)
 			p[key] = match.trim()
@@ -283,14 +283,14 @@ export function parseCallstack(logText: string) {
 
 	const luaEndMatch = rgxLuaEnd.exec(logText)
 	if (luaEndMatch) {
-		parseCallstackLua(luaEndMatch, "luaError", 1)
-		parseCallstackLua(luaEndMatch, "luaStack", 2)
-		parseCallstackLua(luaEndMatch, "luaValues", 3)
+		parseCallstackMatch(luaEndMatch, 1, "luaError")
+		parseCallstackMatch(luaEndMatch, 2, "luaStack")
+		parseCallstackMatch(luaEndMatch, 3, "luaValues")
 	} else {
 		const engineEndMatch = rgxEngineEnd.exec(logText)
 		if (engineEndMatch) {
-			parseCallstackLua(engineEndMatch, "luaStack", 1)
-			parseCallstackLua(engineEndMatch, "luaValues", 2)
+			parseCallstackMatch(engineEndMatch, 1, "luaStack")
+			parseCallstackMatch(engineEndMatch, 2, "luaValues")
 		} else {
 			const abruptMatch = rgxLuaAbruptEnd.exec(logText)
 			if (abruptMatch) {
