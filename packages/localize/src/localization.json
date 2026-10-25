@@ -59,7 +59,7 @@
 		"insight_dml_desc": "Make sure DML is up-to-date and installed correctly.\n{{link=dml}}",
 		"insight_dmf_desc": "DMF is named in the crash message; however, this error may be caused by a mod using DMF's functionality. Make sure DMF is up-to-date and installed correctly.\n{{link=dmf}}",
 		"insight_mod_init_failed_title": "Mod failed to initialize",
-		"insight_mod_init_failed_desc": "{{modName}} was in the process of initializing when the crash occurred.",
+		"insight_mod_init_failed_desc": "{{modName}} was initializing when the crash occurred.",
 		"insight_crash_message_title": "Mod named in crash message",
 		"insight_crash_message_desc_lone": "{{modName}} is named in the crash message; it's a very likely culprit.",
 		"insight_crash_message_desc_input": "{{modName}} is named in the crash message; however, this error may be caused by a mod that affects inputs earlier in the load order.",

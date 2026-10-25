@@ -8,7 +8,7 @@ const rgxInputCall = /@scripts\/managers\/player\/player_game_states\/human_inpu
 const rgxComparisonTypeMismatch = /: attempt to compare \S+ with \S+/
 const rgxUiInfo = /\b(name|scenegraph_id|style_id|value_id|view_name) = "([^"]+)"/g
 const rgxOom = /Not enough memory reserved for heap 'lua_heap', reserved: (\d+), required: (\d+)/
-const rgxModInitStart = /INFO \[Uncategorized\] \[ModManager\] Loading mod (.+?) with id \d+/g
+const rgxModInitStart = /\[ModManager\] Loading mod (.+?) with id \d+/g
 
 const rgxModsFromPaths = /.\/..\/mods\/([^\/]+)\//g
 
