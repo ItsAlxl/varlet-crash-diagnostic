@@ -162,54 +162,67 @@ function filterOutDmf(value: string) {
 	return value !== "dmf"
 }
 
-function insightDXGI(message: string) {
-	if (message.includes("DXGI_ERROR_DEVICE_REMOVED"))
+function insightDXGI(message: string | undefined) {
+	if (message && message.includes("DXGI_ERROR_DEVICE_REMOVED"))
 		return "insight_dxgi_desc"
 }
 
-function insightOOM(message: string) {
-	const oomData = parseOOM(message)
-	if (oomData) {
-		return {
-			desc: oomData.reserved < 2048 ? "insight_oom_desc" : "insight_oom_desc_already_max",
-			context: oomData
+function insightOOM(message: string | undefined) {
+	if (message) {
+		const oomData = parseOOM(message)
+		if (oomData) {
+			return {
+				desc: oomData.reserved < 2048 ? "insight_oom_desc" : "insight_oom_desc_already_max",
+				context: oomData
+			}
 		}
 	}
 }
 
-function insightBaseIssue(message: string) {
-	const mods = findModsFromPaths(message)
-	if (mods.includes("DMF") || mods.includes("dmf"))
-		return "insight_dmf_desc"
+function insightBaseIssue(message: string | undefined) {
+	if (message) {
+		const mods = findModsFromPaths(message)
+		if (mods.includes("DMF") || mods.includes("dmf"))
+			return "insight_dmf_desc"
 
-	if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)") || message === "attempt to call a nil value")
-		return "insight_dml_desc"
+		if (mods.includes("base") || message.includes("attempt to index field 'hook' (a nil value)") || message === "attempt to call a nil value")
+			return "insight_dml_desc"
+	}
 }
 
-function insightCrashMessageMod(message: string, isInput = false) {
-	const mods = findModsFromPaths(message).filter(filterOutDmf)
-	const modName = mods.length > 0 ? mods[0] : undefined
-	if (modName) {
-		return {
-			desc: isInput ? "insight_crash_message_desc_input" : "insight_crash_message_desc_lone",
-			context: { modName: modName }
+function insightCrashMessageMod(message: string | undefined, isInput = false) {
+	if (message) {
+		const mods = findModsFromPaths(message).filter(filterOutDmf)
+		const modName = mods.length > 0 ? mods[0] : undefined
+		if (modName) {
+			return {
+				desc: isInput ? "insight_crash_message_desc_input" : "insight_crash_message_desc_lone",
+				context: { modName: modName }
+			}
 		}
 	}
 }
 
-function insightPageFile(message: string) {
-	if (message.includes("Page allocator 'render_page_allocator' failed allocating")) {
+function insightPageFile(message: string | undefined) {
+	if (message && message.includes("Page allocator 'render_page_allocator' failed allocating")) {
 		return "insight_pagefile_desc"
 	}
 }
 
-function insightDeadlock(message: string) {
-	if (message.includes("Deadlock detected")) {
+function insightDeadlock(message: string | undefined) {
+	if (message && message.includes("Deadlock detected")) {
 		return "insight_deadlock_desc"
 	}
 }
 
 const crashInsights: CrashInsight[] = [
+	new CrashInsight(
+		"insight_crash_before_log_title",
+		(crash: ParsedCrashText) => {
+			if (crash.message === undefined)
+				return "insight_crash_before_log_desc"
+		}
+	),
 	new CrashInsight(
 		"insight_dxgi_title",
 		(crash: ParsedCrashText) => {

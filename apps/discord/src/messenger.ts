@@ -305,8 +305,10 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			}
 
 			if (isFresh) {
-				summary.push(...findCrashInsights(crashTextParse, true))
-				addConsoleLogAsk(embedBuilder, verbose, pasteGuid, channelUrl)
+				const insights = findCrashInsights(crashTextParse, true)
+				summary.push(...insights)
+				if (insights.findIndex(i => i.title === "insight_crash_before_log_title") === -1)
+					addConsoleLogAsk(embedBuilder, verbose, pasteGuid, channelUrl)
 			}
 		}
 

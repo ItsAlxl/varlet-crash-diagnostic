@@ -2,7 +2,7 @@ import { stringSimilarity } from "string-similarity-js"
 
 const rgxGuid = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})/
 const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxGuid.source + /\.dmp/.source)
-const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/.source)
+const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*(?:\[([^\]]+)\]: ([\s\S]+?))?-{47}/.source)
 const rgxModLoadingStart = /\[Lua\] \[Mod\] Loading \.\/\.\.\/mods\/mod_load_order\.txt/g
 const rgxModLoadingStartAML = /\[AML\] Returning control to DML/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'[^\n]+\[([^\]]*)\]/g
@@ -26,8 +26,8 @@ const rgxModsFromPaths = /.\/..\/mods\/([^\/]+)\//g
 
 export type ParsedCrashText = {
 	guid: string,
-	errType: string,
-	message: string
+	errType?: string,
+	message?: string
 }
 
 export type ParsedCallstack = {
@@ -233,13 +233,13 @@ export function parseOOM(engineError: string) {
 	}
 }
 
-export function parseCrashText(text: string) {
+export function parseCrashText(text: string): ParsedCrashText | undefined {
 	const crashMatch = rgxCrashMessage.exec(text)
 	if (crashMatch) {
 		return {
 			guid: crashMatch[1],
 			errType: crashMatch[2],
-			message: crashMatch[3].trim()
+			message: crashMatch[3]?.trim()
 		}
 	}
 	return undefined

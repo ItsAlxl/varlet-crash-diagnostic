@@ -44,6 +44,8 @@
 		"report_text_title": "Report Text",
 		"report_text_desc": "As the report is obnoxiously long, you should try to send it as a file if you can. Only send the text on its own if sharing the file is not possible.",
 		"report_copy": "Copy Text",
+		"insight_crash_before_log_title": "Crashed before logging even started",
+		"insight_crash_before_log_desc": "There will be no corresponding log for this crash. This may have been caused by trying to allocate more than 2048 MB for the Lua heap.",
 		"insight_deadlock_title": "Deadlock",
 		"insight_deadlock_desc": "Deadlock errors are extremely hard to trace. If the error message doesn't have any advice and doesn't name a specific mod, it's likely nothing else can be gleaned from this crash. Reading/writing a lot of files can cause deadlocks, so try disabling any mods that do that.",
 		"insight_dxgi_title": "GPU crash (not mod-related)",
