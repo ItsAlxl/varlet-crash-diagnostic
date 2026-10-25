@@ -5,7 +5,7 @@ const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxG
 const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*(?:\[([^\]]+)\]: ([\s\S]+?))?-{47}/.source)
 const rgxModLoadingStart = /\[Lua\] \[Mod\] Loading \.\/\.\.\/mods\/mod_load_order\.txt/g
 const rgxModLoadingStartAML = /\[AML\] Returning control to DML/g
-const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'[^\n]+\[([^\]]*)\]/g
+const rgxModLoaded = /\[Lua\] Init DMF mod '((?:[^'\\]|\\.)*)'[^\n]+\[([^\]]*)\]/g
 const rgxModLoadMeta = /(\w+):\s*((?:'(?:[^'\\]|\\.)*')|(?:\d*)),/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
