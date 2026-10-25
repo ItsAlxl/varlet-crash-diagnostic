@@ -1,6 +1,6 @@
 import { type TranslateContext, trText } from "@varlet-crash-diagnostic/localize/all"
 import { findGuid, joinModNames, parseCallstack, parseLoadOrder, type LoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
-import { comparesMismatchedTypes, findModsFromPaths, findUiInfo, hasInputCall, parseHookChains, parseModInitFailure, parseOOM, parseStackChains } from "./inspect"
+import { comparesMismatchedTypes, findModsFromPaths, findUiInfo, hasInputCall, parseHookChains, parseModInitFailure, parseOOM, parsePackageMissing, parseStackChains } from "./inspect"
 import { version } from "../package.json"
 
 export const INSIGHTS_VERSION = version
@@ -204,6 +204,18 @@ function insightCrashMessageMod(message: string | undefined, isInput = false) {
 	}
 }
 
+function insightPackageMissing(message: string | undefined) {
+	if (message) {
+		const missing = parsePackageMissing(message)
+		if (missing !== undefined) {
+			return {
+				desc: "insight_package_missing_desc_" + (missing === "" ? "basegame" : "mod"),
+				context: { modName: missing }
+			}
+		}
+	}
+}
+
 function insightPageFile(message: string | undefined) {
 	if (message && message.includes("Page allocator 'render_page_allocator' failed allocating")) {
 		return "insight_pagefile_desc"
@@ -246,6 +258,12 @@ const crashInsights: CrashInsight[] = [
 		"insight_dmlf_title",
 		(crash: ParsedCrashText) => {
 			return insightBaseIssue(crash.message)
+		}
+	),
+	new CrashInsight(
+		"insight_package_missing_title",
+		(crash: ParsedCrashText) => {
+			return insightPackageMissing(crash.message)
 		}
 	),
 	new CrashInsight(
@@ -321,6 +339,12 @@ const logInsights: LogInsight[] = [
 		"insight_dmlf_title",
 		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightBaseIssue(callstack.luaError ?? "")
+		}
+	),
+	new LogInsight(
+		"insight_package_missing_title",
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
+			return insightPackageMissing(callstack.luaError)
 		}
 	),
 	new LogInsight(

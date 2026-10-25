@@ -4,6 +4,9 @@ import type { LoadOrder } from "./parse"
 const rgxStackFunctions = /\[\d+\]\s(?:[^\/\n]+?\/)+?([^\/]+?)(?:\.lua)?:\d+:\s*in function ([^\n]+)/g
 const rgxHookNotification = /\[MOD\]\[([^\n]+?)\]\[INFO\] \(hook(?:\S+?)?\): Hooking '(\S+)' from \[([\s\S]+?)\]/g
 
+const rgxPackageMissing = /Package reference '((?:[^'\\]|\\.)*)' does not exist in resource manager/
+const rgxPackageFromMod = /content\/mods\/([^\/]+)/
+
 const rgxInputCall = /@scripts\/managers\/player\/player_game_states\/human_input_handler\.lua:\d+: in function _parse_input/
 const rgxComparisonTypeMismatch = /: attempt to compare \S+ with \S+/
 const rgxUiInfo = /\b(name|scenegraph_id|style_id|value_id|view_name) = "([^"]+)"/g
@@ -130,5 +133,16 @@ export function parseModInitFailure(loadOrder: LoadOrder, logText: string) {
 		if (latestMatch.index >= loadOrder.logIndex && !loadOrder.includes(latestModName)) {
 			return latestModName
 		}
+	}
+}
+
+export function parsePackageMissing(message: string) {
+	const packageMatch = rgxPackageMissing.exec(message)
+	if (packageMatch) {
+		const modPackageMatch = rgxPackageFromMod.exec(packageMatch[1])
+		if (modPackageMatch) {
+			return modPackageMatch[1]
+		}
+		return ""
 	}
 }
