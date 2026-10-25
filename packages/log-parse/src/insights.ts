@@ -1,5 +1,6 @@
 import { type TranslateContext, trText } from "@varlet-crash-diagnostic/localize/all"
-import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, joinModNames, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, parseStackChains, type LoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { findGuid, joinModNames, parseCallstack, parseLoadOrder, type LoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { comparesMismatchedTypes, findModsFromPaths, findUiInfo, hasInputCall, parseHookChains, parseModInitFailure, parseOOM, parseStackChains } from "./inspect"
 import { version } from "../package.json"
 
 export const INSIGHTS_VERSION = version
@@ -285,6 +286,17 @@ const logInsights: LogInsight[] = [
 		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			if (!callstack.luaError && !callstack.luaStack && !callstack.engineError && !callstack.engineStack)
 				return logText.endsWith("[Log end]") ? "insight_no_crash_desc_graceful" : "insight_no_crash_desc_running"
+		}
+	),
+	new LogInsight(
+		"insight_mod_init_failed_title",
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
+			const failureModName = parseModInitFailure(loadOrder, logText)
+			if (failureModName)
+				return {
+					desc: "insight_mod_init_failed_desc",
+					context: { modName: failureModName }
+				}
 		}
 	),
 	new LogInsight(

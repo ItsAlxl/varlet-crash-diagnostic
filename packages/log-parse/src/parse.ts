@@ -1,5 +1,3 @@
-import { stringSimilarity } from "string-similarity-js"
-
 const rgxGuid = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})/
 const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxGuid.source + /\.dmp/.source)
 const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*(?:\[([^\]]+)\]: ([\s\S]+?))?-{47}/.source)
@@ -14,16 +12,6 @@ const rgxEngineEnd = /<<Lua Stack>>([\s\S]+?)<<\/Lua Stack>>\s*(<<Lua Locals>>[\
 const rgxLuaEnd = new RegExp(/<<Script Error>>([\s\S]+?)<<\/Script Error>>?\s*/.source + rgxEngineEnd.source)
 const rgxLuaAbruptEnd = /<<Script Error>>([\s\S]+?)<<\/Script Error>>\s*\[Log end\]/
 
-const rgxStackFunctions = /\[\d+\]\s(?:[^\/\n]+?\/)+?([^\/]+?)(?:\.lua)?:\d+:\s*in function ([^\n]+)/g
-const rgxHookNotification = /\[MOD\]\[([^\n]+?)\]\[INFO\] \(hook(?:\S+?)?\): Hooking '(\S+)' from \[([\s\S]+?)\]/g
-
-const rgxInputCall = /@scripts\/managers\/player\/player_game_states\/human_input_handler\.lua:\d+: in function _parse_input/
-const rgxComparisonTypeMismatch = /: attempt to compare \S+ with \S+/
-const rgxUiInfo = /\b(name|scenegraph_id|style_id|value_id|view_name) = "([^"]+)"/g
-const rgxOom = /Not enough memory reserved for heap 'lua_heap', reserved: (\d+), required: (\d+)/
-
-const rgxModsFromPaths = /.\/..\/mods\/([^\/]+)\//g
-
 export type ParsedCrashText = {
 	guid: string,
 	errType?: string,
@@ -36,15 +24,6 @@ export type ParsedCallstack = {
 	luaValues?: string,
 	engineError?: string,
 	engineStack?: string
-}
-
-type StackChain = [target: string, funcName: string]
-
-export type ParsedHookChain = {
-	target: string,
-	func: string,
-	mods: string[],
-	confident: boolean
 }
 
 export class LoadedMod {
@@ -66,6 +45,7 @@ export class LoadedMod {
 
 export class LoadOrder {
 	mods: LoadedMod[] = []
+	logIndex: number = 0
 
 	add(name: string, metadataText?: string) {
 		if (metadataText) {
@@ -133,106 +113,6 @@ export function findDumpGuid(fileName: string) {
 	return dumpMatch ? dumpMatch[1] : undefined
 }
 
-function filterToUnique<T>(value: T, index: number, array: T[]) {
-	return array.indexOf(value) === index
-}
-
-export function findModsFromPaths(text: string) {
-	return [...text.matchAll(rgxModsFromPaths)].map(match => match[1]).filter(filterToUnique)
-}
-
-export function findUiInfo(text: string) {
-	const uiInfo = [...text.matchAll(rgxUiInfo)]
-	// if only "name" was found, this probably isn't UI-related
-	if (uiInfo.some(match => match[1] !== "name"))
-		return uiInfo.map(match => match[1] + ": " + match[2]).filter(filterToUnique)
-}
-
-export function comparesMismatchedTypes(errorMessage: string) {
-	return rgxComparisonTypeMismatch.test(errorMessage)
-}
-
-export function hasInputCall(stack: string) {
-	return rgxInputCall.test(stack)
-}
-
-export function parseStackChains(luaStack: string) {
-	const stackChains: StackChain[] = []
-	let chainTarget = ""
-	for (const match of luaStack.matchAll(rgxStackFunctions)) {
-		const script = match[1]
-		const func = match[2]
-		if (chainTarget.length == 0) {
-			chainTarget = func === "hook_chain" ? script : chainTarget
-		} else {
-			if (func !== "hook_chain") {
-				stackChains.push([chainTarget, func])
-				chainTarget = ""
-			}
-		}
-	}
-	return stackChains
-}
-
-function findHookChain(stackChains: StackChain[], hookTarget: string, hookFunc: string): [index: number, confidence: number] {
-	const lowerTarget = hookTarget.toLowerCase()
-
-	let bestConfidence = -1
-	let bestIndex = -1
-	for (let i = 0; i < stackChains.length; i++) {
-		const [chainTarget, chainFunc] = stackChains[i]
-		if (chainFunc === hookFunc) {
-			const conf = stringSimilarity(lowerTarget, chainTarget.replaceAll("_", "").toLowerCase())
-			if (conf > bestConfidence) {
-				bestConfidence = conf
-				bestIndex = i
-			}
-		}
-	}
-
-	return [bestIndex, bestConfidence]
-}
-
-export function parseHookChains(stackChains: StackChain[], logText: string) {
-	const chains = new Map<string, ParsedHookChain & { idx: number }>()
-	for (const h of logText.matchAll(rgxHookNotification)) {
-		const hookTarget = h[3]
-		const hookFunc = h[2]
-		const [chainIdx, confidence] = findHookChain(stackChains, hookTarget, hookFunc)
-		if (chainIdx >= 0) {
-			const hookMod = h[1]
-			const confident = confidence > 0.9
-			const c = chains.get(hookTarget)
-			if (c) {
-				if (!c.mods.includes(hookMod))
-					c.mods.push(hookMod)
-				c.confident ||= confident
-			} else {
-				chains.set(hookTarget, {
-					target: hookTarget,
-					func: hookFunc,
-					confident: confident,
-					mods: [hookMod],
-					idx: chainIdx
-				})
-			}
-		}
-	}
-
-	return [...chains.values()].sort((a, b) => a.idx - b.idx)
-}
-
-export function parseOOM(engineError: string) {
-	const oomMatch = rgxOom.exec(engineError)
-	if (oomMatch) {
-		const mbSize = 1024 * 1024
-		return {
-			reserved: Math.ceil(parseInt(oomMatch[1]) / mbSize),
-			required: Math.ceil(parseInt(oomMatch[2]) / mbSize)
-		}
-	}
-}
-
 export function parseCrashText(text: string): ParsedCrashText | undefined {
 	const crashMatch = rgxCrashMessage.exec(text)
 	if (crashMatch) {
@@ -249,14 +129,15 @@ export function parseLoadOrder(logText: string) {
 	const loadOrder = new LoadOrder()
 
 	// if there were reloads, we only care about the most recent
-	let starts = [...logText.matchAll(rgxModLoadingStart)]
+	let starts = logText.matchAll(rgxModLoadingStart).toArray()
 	if (starts.length === 0) {
-		starts = [...logText.matchAll(rgxModLoadingStartAML)]
+		starts = logText.matchAll(rgxModLoadingStartAML).toArray()
 	}
 
 	if (starts.length > 0) {
-
 		const startAt = starts[starts.length - 1].index
+		loadOrder.logIndex = startAt
+
 		const matches = logText.matchAll(rgxModLoaded)
 		let first = true
 		for (const m of matches) {
