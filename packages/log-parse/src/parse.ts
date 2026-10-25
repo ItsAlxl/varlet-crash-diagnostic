@@ -275,20 +275,27 @@ export function parseLoadOrder(logText: string) {
 export function parseCallstack(logText: string) {
 	const p: ParsedCallstack = {}
 
-	const luaMatch = rgxLuaEnd.exec(logText)
-	if (luaMatch) {
-		function parseCallstackLua(key: keyof (ParsedCallstack), idx: number) {
-			const match = luaMatch![idx]
-			if (match)
-				p[key] = match.trim()
-		}
-		parseCallstackLua("luaError", 1)
-		parseCallstackLua("luaStack", 2)
-		parseCallstackLua("luaValues", 3)
+	function parseCallstackLua(matches: RegExpExecArray, key: keyof (ParsedCallstack), idx: number) {
+		const match = matches![idx]
+		if (match)
+			p[key] = match.trim()
+	}
+
+	const luaEndMatch = rgxLuaEnd.exec(logText)
+	if (luaEndMatch) {
+		parseCallstackLua(luaEndMatch, "luaError", 1)
+		parseCallstackLua(luaEndMatch, "luaStack", 2)
+		parseCallstackLua(luaEndMatch, "luaValues", 3)
 	} else {
-		const abruptMatch = rgxLuaAbruptEnd.exec(logText)
-		if (abruptMatch) {
-			p.luaError = abruptMatch[1]
+		const engineEndMatch = rgxEngineEnd.exec(logText)
+		if (engineEndMatch) {
+			parseCallstackLua(engineEndMatch, "luaStack", 1)
+			parseCallstackLua(engineEndMatch, "luaValues", 2)
+		} else {
+			const abruptMatch = rgxLuaAbruptEnd.exec(logText)
+			if (abruptMatch) {
+				p.luaError = abruptMatch[1]
+			}
 		}
 	}
 
