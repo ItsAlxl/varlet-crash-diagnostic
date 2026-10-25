@@ -1,5 +1,5 @@
 import { type TranslateContext, trText } from "@varlet-crash-diagnostic/localize/all"
-import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, parseStackChains, type ParsedCallstack, type ParsedCrashText } from "./parse"
+import { comparesMismatchedTypes, findGuid, findModsFromPaths, findUiInfo, hasInputCall, joinModNames, parseCallstack, parseHookChains, parseLoadOrder, parseOOM, parseStackChains, type LoadOrder, type ParsedCallstack, type ParsedCrashText } from "./parse"
 import { version } from "../package.json"
 
 export const INSIGHTS_VERSION = version
@@ -14,7 +14,7 @@ type InsightFind = InsightContextualFind | string | undefined
 export type InsightResult = InsightContextualFind & { title: string }
 export type LogReport = {
 	guid: string,
-	loadOrder: string[],
+	loadOrder: LoadOrder,
 	callstack: ParsedCallstack,
 	callstackText: string,
 	insights: InsightResult[],
@@ -50,7 +50,7 @@ class LogInsight {
 	title
 	findCb
 
-	constructor(title: string, findCb: (callstack: ParsedCallstack, loadOrder: string[], logText: string) => InsightFind) {
+	constructor(title: string, findCb: (callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => InsightFind) {
 		this.title = title
 		this.findCb = findCb
 	}
@@ -82,7 +82,7 @@ export function findCrashInsights(crash: ParsedCrashText, botEmptyMessage = fals
 	return results
 }
 
-function findLogInsights(callstack: ParsedCallstack, loadOrder: string[], logText: string) {
+function findLogInsights(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) {
 	const results: InsightResult[] = []
 	for (const ins of logInsights) {
 		const f = ins.findCb(callstack, loadOrder, logText)
@@ -138,7 +138,7 @@ ${callstack.luaValues ?? ""}
 
 -----
 [${trReport("readout_load_order")}]:
-${loadOrder.join("\n")}`.trim()
+${loadOrder.joinNames("\n", true)}`.trim()
 
 	return {
 		guid: guid ?? "",
@@ -251,69 +251,69 @@ const crashInsights: CrashInsight[] = [
 const logInsights: LogInsight[] = [
 	new LogInsight(
 		"insight_dmlf_loaded_twice_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
-			if (loadOrder.length > 0 && (loadOrder.includes("DMF") || loadOrder.includes("dmf") || loadOrder.includes("base")))
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
+			if (!loadOrder.isEmpty() && (loadOrder.includes("DMF") || loadOrder.includes("dmf") || loadOrder.includes("base")))
 				return "insight_dmlf_loaded_twice_desc"
 		}
 	),
 	new LogInsight(
 		"insight_duplicate_mods_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
-			const dupes = loadOrder.filter((value, index, array) => array.indexOf(value) !== index)
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
+			const dupes = loadOrder.findDupes()
 			if (dupes.length > 0)
 				return {
 					desc: "insight_duplicate_mods_desc",
-					context: { dupes: dupes.join(", ") }
+					context: { dupes: joinModNames(dupes, ", ", false) }
 				}
 		}
 	),
 	new LogInsight(
 		"insight_no_crash_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			if (!callstack.luaError && !callstack.luaStack && !callstack.engineError && !callstack.engineStack)
 				return logText.endsWith("[Log end]") ? "insight_no_crash_desc_graceful" : "insight_no_crash_desc_running"
 		}
 	),
 	new LogInsight(
 		"insight_dxgi_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightDXGI(callstack.engineError ?? "")
 		}
 	),
 	new LogInsight(
 		"insight_oom_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightOOM(callstack.engineError ?? "")
 		}
 	),
 	new LogInsight(
 		"insight_pagefile_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightPageFile(callstack.engineError ?? "")
 		}
 	),
 	new LogInsight(
 		"insight_dmlf_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightBaseIssue(callstack.luaError ?? "")
 		}
 	),
 	new LogInsight(
 		"insight_crash_message_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			if (callstack.luaStack && callstack.luaError)
 				return insightCrashMessageMod(callstack.luaError, hasInputCall(callstack.luaStack) && comparesMismatchedTypes(callstack.luaError))
 		}
 	),
 	new LogInsight(
 		"insight_deadlock_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightDeadlock(callstack.engineError ?? "") ?? insightDeadlock(callstack.luaError ?? "")
 		}
 	),
 	new LogInsight(
 		"insight_ui_info_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			if (callstack.luaStack?.includes("@scripts/managers/ui/ui_renderer.lua")) {
 				const uiInfo = findUiInfo(callstack.luaValues ?? "")
 				if (uiInfo && uiInfo.length > 0)
@@ -326,7 +326,7 @@ const logInsights: LogInsight[] = [
 	),
 	new LogInsight(
 		"insight_lua_stack_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			const mods = findModsFromPaths(callstack.luaStack ?? "").filter(filterOutDmf)
 			const numMods = mods.length
 			if (numMods > 0)
@@ -338,7 +338,7 @@ const logInsights: LogInsight[] = [
 	),
 	new LogInsight(
 		"insight_hook_chain_title",
-		(callstack: ParsedCallstack, loadOrder: string[], logText: string) => {
+		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			if (callstack.luaStack) {
 				const stackChains = parseStackChains(callstack.luaStack)
 				const chains = parseHookChains(stackChains, logText)

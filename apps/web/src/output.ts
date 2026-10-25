@@ -1,6 +1,6 @@
 import { findCrashInsights, createLogReport, type InsightResult } from "@varlet-crash-diagnostic/log-parse/insights"
 import { onLocaleChanged, trIntoElement } from "@varlet-crash-diagnostic/localize/all"
-import { isConsoleLogText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
+import { createLoadedModDisplay, isConsoleLogText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 
 const navbar = document.getElementById("navbar") as HTMLDivElement
 
@@ -102,9 +102,9 @@ export async function displayLogFile(file: File) {
 		logGuid = report.guid
 		switchGuidVis(report.guid)
 
-		loadOrderList.replaceChildren(...report.loadOrder.map((o) => {
+		loadOrderList.replaceChildren(...report.loadOrder.mods.map((m) => {
 			const item = document.createElement("li")
-			item.innerText = o
+			item.innerText = createLoadedModDisplay(m, true)
 			return item
 		}))
 

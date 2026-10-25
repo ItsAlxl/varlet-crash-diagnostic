@@ -5,7 +5,8 @@ const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxG
 const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/.source)
 const rgxModLoadingStart = /\[Lua\] \[Mod\] Loading \.\/\.\.\/mods\/mod_load_order\.txt/g
 const rgxModLoadingStartAML = /\[AML\] Returning control to DML/g
-const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
+const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'[^\n]+\[([^\]]*)\]/g
+const rgxModLoadMeta = /(\w+):\s*((?:'(?:[^'\\]|\\.)*')|(?:\d*)),/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
 const rgxEngineStack = /<<Callstack>>([\s\S]+?)<<\/Callstack>>/
@@ -44,6 +45,78 @@ export type ParsedHookChain = {
 	func: string,
 	mods: string[],
 	confident: boolean
+}
+
+export class LoadedMod {
+	name: string
+	metadata: { [k: string]: string } | undefined
+
+	constructor(name: string, metadata?: { [k: string]: string }) {
+		this.name = name
+		this.metadata = metadata
+	}
+
+	getVersion() {
+		const m = this.metadata
+		if (m && m.hasOwnProperty("version"))
+			return m.version
+		return undefined
+	}
+}
+
+export class LoadOrder {
+	mods: LoadedMod[] = []
+
+	add(name: string, metadataText?: string) {
+		if (metadataText) {
+			const meta: { [k: string]: string } = {}
+			let empty = true
+			for (const match of (metadataText + ",").matchAll(rgxModLoadMeta)) {
+				let v = match[2]
+				if (v.startsWith("'") && v.endsWith("'"))
+					v = v.substring(1, v.length - 1)
+				meta[match[1]] = v
+				empty = false
+			}
+
+			if (!empty) {
+				this.mods.push(new LoadedMod(name, meta))
+				return
+			}
+		}
+
+		this.mods.push(new LoadedMod(name))
+	}
+
+	isEmpty() {
+		return this.mods.length === 0
+	}
+
+	includes(modName: string) {
+		return this.mods.find(m => m.name === modName)
+	}
+
+	findDupes() {
+		return this.mods.filter((value, index, array) => array.findIndex(m => m.name === value.name) !== index)
+	}
+
+	joinNames(separator = ", ", includeVersion = false) {
+		return joinModNames(this.mods, separator, includeVersion)
+	}
+}
+
+export function createLoadedModDisplay(mod: LoadedMod, includeVersion: boolean) {
+	if (includeVersion) {
+		const ver = mod.getVersion()
+		if (ver) {
+			return mod.name + " [" + ver + "]"
+		}
+	}
+	return mod.name
+}
+
+export function joinModNames(mods: LoadedMod[], separator = ", ", includeVersion = false) {
+	return mods.map(m => createLoadedModDisplay(m, includeVersion)).join(separator)
 }
 
 export function isConsoleLogText(text: string) {
@@ -173,7 +246,7 @@ export function parseCrashText(text: string) {
 }
 
 export function parseLoadOrder(logText: string) {
-	const loadOrder: string[] = []
+	const loadOrder = new LoadOrder()
 
 	// if there were reloads, we only care about the most recent
 	let starts = [...logText.matchAll(rgxModLoadingStart)]
@@ -182,6 +255,7 @@ export function parseLoadOrder(logText: string) {
 	}
 
 	if (starts.length > 0) {
+
 		const startAt = starts[starts.length - 1].index
 		const matches = logText.matchAll(rgxModLoaded)
 		let first = true
@@ -189,7 +263,7 @@ export function parseLoadOrder(logText: string) {
 			if (m.index >= startAt) {
 				const modName = m[1]
 				if (!(first && modName === "DMF"))
-					loadOrder.push(modName)
+					loadOrder.add(modName, m[2])
 				first = false
 			}
 		}
