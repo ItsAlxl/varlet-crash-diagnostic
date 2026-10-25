@@ -3,7 +3,8 @@ import { stringSimilarity } from "string-similarity-js"
 const rgxGuid = /([\dabcdef]{8}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{4}-[\dabcdef]{12})/
 const rgxDumpName = new RegExp(/crash_dump(?:-\d+){4}(?:.\d+){2}-/.source + rgxGuid.source + /\.dmp/.source)
 const rgxCrashMessage = new RegExp(rgxGuid.source + /\s*(?:Log File:\s*)?(?:Info Type:\s*)?-{47}\s*\[([^\]]+)\]: ([\s\S]+?)-{47}/.source)
-const rgxModLoadingStart = /\[Lua\] Init DMF mod 'DMF'/g
+const rgxModLoadingStart = /\[Lua\] \[Mod\] Loading \.\/\.\.\/mods\/mod_load_order\.txt/g
+const rgxModLoadingStartAML = /\[AML\] Returning control to DML/g
 const rgxModLoaded = /\[Lua\] Init DMF mod '([^']+)'/g
 
 const rgxEngineError = /<<Crash>>([\s\S]+?)<<\/Crash>>/
@@ -175,7 +176,11 @@ export function parseLoadOrder(logText: string) {
 	const loadOrder: string[] = []
 
 	// if there were reloads, we only care about the most recent
-	const starts = [...logText.matchAll(rgxModLoadingStart)]
+	let starts = [...logText.matchAll(rgxModLoadingStart)]
+	if (starts.length === 0) {
+		starts = [...logText.matchAll(rgxModLoadingStartAML)]
+	}
+
 	if (starts.length > 0) {
 		const startAt = starts[starts.length - 1].index
 		const matches = logText.matchAll(rgxModLoaded)
