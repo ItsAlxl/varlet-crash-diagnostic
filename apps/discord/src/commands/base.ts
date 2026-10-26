@@ -58,7 +58,10 @@ export class BaseMessageCommand extends BaseCommand {
 			return result
 		}
 
-		await interaction.editReply(trText("bot_deduped_desc", { dedupeLinks: dupe?.responseReference ?? "" }))
+		await interaction.reply({
+			content: trText("bot_deduped_desc", { dedupeLinks: dupe?.responseReference ?? "" }),
+			flags: MessageFlags.Ephemeral
+		})
 		return { success: false }
 	}
 }
