@@ -1,5 +1,5 @@
-import { configureLocalization } from "@varlet-crash-diagnostic/localize/all"
-import { ChannelType, Client, Events, GatewayIntentBits, MessageReferenceType, Partials, type Message, type MessageSnapshot, type PartialMessage } from "discord.js"
+import { configureLocalization, trText } from "@varlet-crash-diagnostic/localize/all"
+import { ChannelType, Client, Events, GatewayIntentBits, MessageFlags, MessageReferenceType, Partials, type Message, type MessageSnapshot, type PartialMessage } from "discord.js"
 import { sendReportOn, setAutoAskForLogs } from "./messenger"
 import { executeCommand, registerAll as registerCommands } from "./commands"
 
@@ -89,8 +89,16 @@ client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
 })
 
 client.on(Events.InteractionCreate, async (interaction) => {
-	if (interaction.isMessageContextMenuCommand() && !msgIsMine(interaction.targetMessage))
-		executeCommand(interaction)
+	if (interaction.isMessageContextMenuCommand()) {
+		if (msgIsMine(interaction.targetMessage)) {
+			await interaction.reply({
+				content: trText("bot_invalid_cmd"),
+				flags: MessageFlags.Ephemeral
+			})
+		} else {
+			executeCommand(interaction)
+		}
+	}
 })
 
 client.login(discordToken)

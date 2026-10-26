@@ -111,6 +111,7 @@
 		"bot_deduped_desc": "I've already recently responded: {{dedupeLinks}}",
 		"bot_more_in_report_title": "More in report",
 		"bot_more_in_report_desc": "There was too much information to fit in the summary.",
+		"bot_invalid_cmd": "Invalid command.",
 		"bot_cmd_ask_for_logs_title": "Ask for logs",
 		"bot_cmd_ask_for_logs_ok": "Asked :)",
 		"bot_cmd_ask_for_logs_error": "Failed to ask.",
