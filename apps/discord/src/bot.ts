@@ -89,7 +89,7 @@ client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
 })
 
 client.on(Events.InteractionCreate, async (interaction) => {
-	if (interaction.isMessageContextMenuCommand())
+	if (interaction.isMessageContextMenuCommand() && !msgIsMine(interaction.targetMessage))
 		executeCommand(interaction)
 })
 
