@@ -47,4 +47,3 @@ export function testLogFreshness(guid: string, strictness = DedupeStrictness.Str
 export function testPasteFreshness(guid: string, strictness = DedupeStrictness.Strict) {
 	return testFreshness(dedupeHistoryPastes, guid, strictness)
 }
-

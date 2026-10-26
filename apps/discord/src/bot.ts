@@ -2,7 +2,6 @@ import { configureLocalization } from "@varlet-crash-diagnostic/localize/all"
 import { ChannelType, Client, Events, GatewayIntentBits, MessageReferenceType, Partials, type Message, type MessageSnapshot, type PartialMessage } from "discord.js"
 import { sendReportOn, setAutoAskForLogs } from "./messenger"
 import { executeCommand, registerAll as registerCommands } from "./commands"
-import { DedupeStrictness } from "./dedupe"
 
 const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
 const autoAskForLogs = process.env.AUTO_ASK_FOR_LOGS?.toLowerCase() === "true"
