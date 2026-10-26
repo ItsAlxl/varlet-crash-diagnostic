@@ -9,41 +9,42 @@ export enum DedupeStrictness {
 	IgnoreDeduping,
 }
 
+const DeduperMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
+
 type DedupeResult = [isFresh: boolean, record: DedupeRecord | undefined]
 
-const dedupeHistoryMax = parseInt(process.env.DEDUPE_HISTORY ?? "10")
-const dedupeHistoryLogs: DedupeRecord[] = []
-const dedupeHistoryPastes: DedupeRecord[] = []
+class Deduper {
+	records: DedupeRecord[] = []
 
-function getDupe(history: DedupeRecord[], guid: string) {
-	return history.find(r => r.guid === guid)
-}
-
-function rememberDupe(history: DedupeRecord[], guid: string) {
-	const record: DedupeRecord = { guid: guid }
-	history.push(record)
-	if (history.length > dedupeHistoryMax) {
-		history.shift()
+	find(guid: string) {
+		return this.records.find(r => r.guid === guid)
 	}
-	return record
-}
 
-function testFreshness(history: DedupeRecord[], guid: string, strictness: DedupeStrictness): DedupeResult {
-	const dupe = getDupe(history, guid)
-	const isFresh = dupe === undefined
+	test(guid: string, strictness = DedupeStrictness.Strict): DedupeResult {
+		const dupe = this.find(guid)
+		const isFresh = dupe === undefined
 
-	if (isFresh || strictness !== DedupeStrictness.Strict) {
-		if (isFresh && strictness !== DedupeStrictness.IgnoreDeduping)
-			return [true, rememberDupe(history, guid)]
-		return [true, undefined]
+		if (isFresh || strictness !== DedupeStrictness.Strict) {
+			if (isFresh && strictness !== DedupeStrictness.IgnoreDeduping)
+				return [true, { guid: guid }]
+			return [true, undefined]
+		}
+		return [false, dupe]
 	}
-	return [false, dupe]
+
+	remember(record: DedupeRecord) {
+		const history = this.records
+		history.push(record)
+		if (history.length > DeduperMax) {
+			history.shift()
+		}
+	}
 }
 
-export function testLogFreshness(guid: string, strictness = DedupeStrictness.Strict) {
-	return testFreshness(dedupeHistoryLogs, guid, strictness)
-}
+const histories: { [k: string]: Deduper } = {}
 
-export function testPasteFreshness(guid: string, strictness = DedupeStrictness.Strict) {
-	return testFreshness(dedupeHistoryPastes, guid, strictness)
+export function getOrCreateDeduper(id: string) {
+	if (!histories.hasOwnProperty(id))
+		histories[id] = new Deduper()
+	return histories[id]
 }

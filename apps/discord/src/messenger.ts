@@ -2,7 +2,7 @@ import { trMarkdown, trText } from "@varlet-crash-diagnostic/localize/all"
 import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, type LogReport } from "@varlet-crash-diagnostic/log-parse/insights"
 import { findDumpGuid, findGuid, isConsoleLogText, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { ChannelType, EmbedBuilder, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot } from "discord.js"
-import { DedupeStrictness, testLogFreshness, testPasteFreshness, type DedupeRecord } from "./dedupe"
+import { DedupeStrictness, getOrCreateDeduper, type DedupeRecord } from "./dedupe"
 
 const MAX_EMBED_LENGTH = 6000
 const MAX_FIELD_LENGTH = 1024
@@ -256,8 +256,12 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 		const dedupeStrict = isDm ? DedupeStrictness.IgnoreDeduping : (config?.dedupeStrict ?? DedupeStrictness.Strict)
 		const verbose = config?.verbose ?? false
 
-		const newDedupeRecords: DedupeRecord[] = []
+		const newLogDedupeRecords: DedupeRecord[] = []
+		const newPasteDedupeRecords: DedupeRecord[] = []
 		const referencedDupes: string[] = []
+
+		const logDeduper = getOrCreateDeduper("log")
+		const pasteDeduper = getOrCreateDeduper("paste")
 
 		if (reports && explicit) {
 			if (crashTextParse && !reports.some(r => r.report.guid === crashTextParse.guid)) {
@@ -269,10 +273,10 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 
 			const freshReports: AttachmentReport[] = []
 			for (const r of reports) {
-				const [isFresh, dupe] = testLogFreshness(r.report.guid, dedupeStrict)
+				const [isFresh, dupe] = logDeduper.test(r.report.guid, dedupeStrict)
 				if (dupe) {
 					if (isFresh)
-						newDedupeRecords.push(dupe)
+						newLogDedupeRecords.push(dupe)
 					else if (dupe.responseReference)
 						referencedDupes.push(dupe.responseReference)
 				}
@@ -296,10 +300,10 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 
 		if (!reports && crashTextParse && (explicit || autoAskForLogs)) {
 			const pasteGuid = crashTextParse.guid
-			const [isFresh, dupe] = testPasteFreshness(pasteGuid, dedupeStrict)
+			const [isFresh, dupe] = pasteDeduper.test(pasteGuid, dedupeStrict)
 			if (dupe) {
 				if (isFresh)
-					newDedupeRecords.push(dupe)
+					newPasteDedupeRecords.push(dupe)
 				else if (dupe.responseReference)
 					referencedDupes.push(dupe.responseReference)
 			}
@@ -328,9 +332,16 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 			}
 
 			const sentMsg = await replyTarget.reply(response)
-			for (const r of newDedupeRecords) {
+
+			for (const r of newLogDedupeRecords) {
 				r.responseReference = sentMsg.url
+				logDeduper.remember(r)
 			}
+			for (const r of newPasteDedupeRecords) {
+				r.responseReference = sentMsg.url
+				pasteDeduper.remember(r)
+			}
+
 			return true
 		}
 	}
@@ -357,9 +368,11 @@ export async function askForLogs(message: Message) {
 
 	const guid = findGuid(message.content)
 	const channelUrl = message.channel.url
+
+	const deduper = getOrCreateDeduper("paste")
 	let newDedupeRecord = undefined
 	if (guid) {
-		const [isFresh, dupe] = testPasteFreshness(guid)
+		const [isFresh, dupe] = deduper.test(guid)
 		if (isFresh) {
 			addConsoleLogAsk(embedBuilder, false, guid, channelUrl)
 			newDedupeRecord = dupe
@@ -371,13 +384,20 @@ export async function askForLogs(message: Message) {
 	}
 
 	if (embedBuilder.length > 0) {
-		finishEmbed(embedBuilder)
-		const replyMsg = await message.reply({ embeds: [embedBuilder] })
-		if (newDedupeRecord) {
-			newDedupeRecord.responseReference = replyMsg.url
+		try {
+			finishEmbed(embedBuilder)
+			const replyMsg = await message.reply({ embeds: [embedBuilder] })
+			if (newDedupeRecord) {
+				newDedupeRecord.responseReference = replyMsg.url
+				deduper.remember(newDedupeRecord)
+			}
+			return true
 		}
-		return true
+		catch (e) {
+			console.error(e)
+		}
 	}
+
 	return false
 }
 
