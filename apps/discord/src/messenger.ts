@@ -53,8 +53,13 @@ function getLogSuffix(guid: string) {
 }
 
 async function parseMessage(msg: Message | MessageSnapshot) {
+	let unquotedText = msg.content
+	if (unquotedText.startsWith("> "))
+		unquotedText = unquotedText.substring(2)
+	unquotedText = unquotedText.replaceAll(/\n>/g, "")
+
 	const components: ResponseComponents = {
-		crashTextParse: parseCrashText(msg.content),
+		crashTextParse: parseCrashText(unquotedText),
 	}
 
 	const attachments = msg.attachments.values()
@@ -397,7 +402,7 @@ async function sendReportFromSnapshots(message: Message, explicit: boolean, conf
 			return result
 		}
 	}
-	return {success: false}
+	return { success: false }
 }
 
 export async function sendReportOn(message: Message, explicit: boolean, config: ResponseConfig = undefined) {
