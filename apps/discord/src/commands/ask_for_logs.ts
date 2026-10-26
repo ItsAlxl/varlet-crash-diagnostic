@@ -1,12 +1,9 @@
-import { ApplicationCommandType, ContextMenuCommandBuilder, PermissionFlagsBits, type MessageContextMenuCommandInteraction } from "discord.js"
 import { askForLogs } from "../messenger"
+import { BaseMessageCommand } from "./base"
 
-export default {
-	data: new ContextMenuCommandBuilder()
-		.setName("ask_for_logs")
-		.setType(ApplicationCommandType.Message)
-		.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
-	async execute(interaction: MessageContextMenuCommandInteraction) {
+export default new BaseMessageCommand(
+	"ask_for_logs",
+	async function(interaction) {
 		return await askForLogs(interaction.targetMessage)
-	}
-}
+	},
+)

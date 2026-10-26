@@ -3,6 +3,11 @@ import { ChannelType, Client, Events, GatewayIntentBits, MessageReferenceType, P
 import { sendReportOn, setAutoAskForLogs } from "./messenger"
 import { executeCommand, registerAll as registerCommands } from "./commands"
 
+export type ActionResult = {
+	success: boolean,
+	message?: Message | PartialMessage | MessageSnapshot,
+}
+
 const replyRetargeting = process.env.REPLY_RETARGETING?.toLowerCase() === "true"
 const autoAskForLogs = process.env.AUTO_ASK_FOR_LOGS?.toLowerCase() === "true"
 const discordToken = process.env.DISCORD_TOKEN ?? ""

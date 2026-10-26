@@ -3,6 +3,7 @@ import { createLogReport, findCrashInsights, getDescTerse, type InsightResult, t
 import { findDumpGuid, findGuid, isConsoleLogText, parseCrashText, type ParsedCrashText } from "@varlet-crash-diagnostic/log-parse/parse"
 import { ChannelType, EmbedBuilder, type APIEmbedField, type Message, type MessageReplyOptions, type MessageSnapshot } from "discord.js"
 import { DedupeStrictness, getOrCreateDeduper, type DedupeRecord } from "./dedupe"
+import type { ActionResult } from "./bot"
 
 const MAX_EMBED_LENGTH = 6000
 const MAX_FIELD_LENGTH = 1024
@@ -221,7 +222,7 @@ function getChannelPreferenceText(locKey: string, channelUrl: string | undefined
 		: undefined
 }
 
-async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, config: ResponseConfig, replyTo: Message | undefined = undefined) {
+async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: boolean, config: ResponseConfig, replyTo: Message | undefined = undefined): Promise<ActionResult> {
 	try {
 		const replyTarget = replyTo ?? msg
 		const channel = replyTarget?.channel
@@ -342,14 +343,14 @@ async function sendReportFromMessage(msg: Message | MessageSnapshot, explicit: b
 				pasteDeduper.remember(r)
 			}
 
-			return true
+			return { success: true, message: sentMsg }
 		}
 	}
 	catch (e) {
 		console.error(e)
 	}
 
-	return false
+	return { success: false }
 }
 
 async function sendFailureReaction(msg: Message) {
@@ -363,22 +364,14 @@ async function sendFailureReaction(msg: Message) {
 	}
 }
 
-export async function askForLogs(message: Message) {
+export async function askForLogs(message: Message): Promise<ActionResult> {
 	const embedBuilder = new EmbedBuilder()
 
 	const guid = findGuid(message.content)
 	const channelUrl = message.channel.url
 
-	const deduper = getOrCreateDeduper("paste")
-	let newDedupeRecord = undefined
 	if (guid) {
-		const [isFresh, dupe] = deduper.test(guid)
-		if (isFresh) {
-			addConsoleLogAsk(embedBuilder, false, guid, channelUrl)
-			newDedupeRecord = dupe
-		} else if (dupe?.responseReference) {
-			embedBuilder.addFields(createDedupeField(dupe.responseReference))
-		}
+		addConsoleLogAsk(embedBuilder, false, guid, channelUrl)
 	} else {
 		addConsoleLogAsk(embedBuilder, false, undefined, channelUrl)
 	}
@@ -386,36 +379,35 @@ export async function askForLogs(message: Message) {
 	if (embedBuilder.length > 0) {
 		try {
 			finishEmbed(embedBuilder)
-			const replyMsg = await message.reply({ embeds: [embedBuilder] })
-			if (newDedupeRecord) {
-				newDedupeRecord.responseReference = replyMsg.url
-				deduper.remember(newDedupeRecord)
-			}
-			return true
+			const m = await message.reply({ embeds: [embedBuilder] })
+			return { success: true, message: m }
 		}
 		catch (e) {
 			console.error(e)
 		}
 	}
 
-	return false
+	return { success: false }
 }
 
-async function sendReportFromSnapshots(message: Message, explicit: boolean, config: ResponseConfig) {
-	let success = false
+async function sendReportFromSnapshots(message: Message, explicit: boolean, config: ResponseConfig): Promise<ActionResult> {
 	for (const snap of message.messageSnapshots) {
-		success ||= await sendReportFromMessage(snap[1], explicit, config, message)
+		const result = await sendReportFromMessage(snap[1], explicit, config, message)
+		if (result.success) {
+			return result
+		}
 	}
-	return success
+	return {success: false}
 }
 
 export async function sendReportOn(message: Message, explicit: boolean, config: ResponseConfig = undefined) {
-	const success = (await Promise.all([
+	const results = (await Promise.all([
 		sendReportFromMessage(message, explicit, config),
 		sendReportFromSnapshots(message, explicit, config),
-	])).some(r => r)
-	if (explicit && !success && (config?.reactOnFailure ?? true)) {
+	]))
+	const result = results.find(r => r.success) ?? results[0]
+	if (explicit && !result.success && (config?.reactOnFailure ?? true)) {
 		sendFailureReaction(config?.retargetedFrom ?? message)
 	}
-	return success
+	return result
 }

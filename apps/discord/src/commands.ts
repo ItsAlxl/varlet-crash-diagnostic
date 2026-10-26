@@ -1,29 +1,18 @@
-import { Locale, MessageFlags, REST, Routes, type ContextMenuCommandBuilder, type MessageContextMenuCommandInteraction } from "discord.js"
+import { Locale, REST, Routes, type ContextMenuCommandBuilder, type MessageContextMenuCommandInteraction } from "discord.js"
 import { getBestFitLocale, trText } from "@varlet-crash-diagnostic/localize/all"
 import cmdParse from "./commands/parse"
 import cmdForceParse from "./commands/force_parse"
 import cmdAskForLogs from "./commands/ask_for_logs"
+import type { BaseCommand } from "./commands/base"
 
-type CommandDefinition = {
-	data: ContextMenuCommandBuilder,
-	execute(interaction: MessageContextMenuCommandInteraction): Promise<boolean>,
-	responseAlias?: string
-}
 type LocaleMap = { [discordLocale: string]: string }
 
-const allCommands: CommandDefinition[] = [cmdParse, cmdForceParse, cmdAskForLogs]
-const cmdByName: { [key: string]: CommandDefinition } = {}
+const allCommands: BaseCommand[] = [cmdParse, cmdForceParse, cmdAskForLogs]
+const cmdByName: { [key: string]: BaseCommand } = {}
 
 export async function executeCommand(interaction: MessageContextMenuCommandInteraction) {
 	try {
-		const cmdName = interaction.commandName
-		const cmd = cmdByName[cmdName]
-		const exec = cmd?.execute
-		if (exec) {
-			await interaction.deferReply({ flags: MessageFlags.Ephemeral })
-			const success = await exec(interaction)
-			await interaction.editReply(trText("bot_cmd_" + (cmd.responseAlias ?? cmdName) + (success ? "_ok" : "_error")))
-		}
+		cmdByName[interaction.commandName].execute(interaction)
 	} catch (e) {
 		console.error(e)
 	}

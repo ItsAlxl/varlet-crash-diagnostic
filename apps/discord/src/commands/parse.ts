@@ -1,12 +1,9 @@
-import { ApplicationCommandType, ContextMenuCommandBuilder, PermissionFlagsBits, type MessageContextMenuCommandInteraction } from "discord.js"
 import { sendReportOn } from "../messenger"
+import { BaseMessageCommand } from "./base"
 
-export default {
-	data: new ContextMenuCommandBuilder()
-		.setName("parse")
-		.setType(ApplicationCommandType.Message)
-		.setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
-	async execute(interaction: MessageContextMenuCommandInteraction) {
+export default new BaseMessageCommand(
+	"parse",
+	async function(interaction) {
 		return await sendReportOn(interaction.targetMessage, true, { reactOnFailure: false })
-	}
-}
+	},
+)
