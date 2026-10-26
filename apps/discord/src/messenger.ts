@@ -114,8 +114,7 @@ ${trText("faq_log_location_proton_title")}
 \`${trText("faq_log_location_proton_path")}\`
 
 ${trMarkdown("bot_log_location_suffix_verbose", { preferChannel: preferChannel, specifyLog: specifyLog })}`)
-	}
-	else {
+	} else {
 		embedBuilder.setDescription(`${trMarkdown("bot_log_location_prefix")}
 \`${trMarkdown("faq_log_location_steam_path")}\`
 

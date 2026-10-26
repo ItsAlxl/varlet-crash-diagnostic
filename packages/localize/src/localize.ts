@@ -231,9 +231,9 @@ function tupleToMarkdown(t: TranslatedTuple) {
 
 	const attr = t.attributes
 	if (attr) {
-		if (attr.get("code"))
+		if (attr.get("code")) {
 			text = "`" + text + "`"
-		else {
+		} else {
 			const linkTarget = attr.get("link")
 			if (linkTarget) {
 				const url = getLinkUrl(linkTarget)
