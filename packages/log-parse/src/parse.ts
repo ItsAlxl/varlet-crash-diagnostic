@@ -89,7 +89,7 @@ export function createLoadedModDisplay(mod: LoadedMod, includeVersion: boolean) 
 	if (includeVersion) {
 		const ver = mod.getVersion()
 		if (ver) {
-			return mod.name + " [" + ver + "]"
+			return mod.name + " <" + ver + ">"
 		}
 	}
 	return mod.name
