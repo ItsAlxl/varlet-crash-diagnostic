@@ -164,8 +164,8 @@ function filterOutDmf(value: string) {
 }
 
 function insightDXGI(message: string | undefined) {
-	if (message && message.includes("DXGI_ERROR_DEVICE_REMOVED"))
-		return "insight_dxgi_desc"
+	if (message && (message.includes("DXGI_ERROR_DEVICE_REMOVED") || message.startsWith("A GPU Hang has likely occurred")))
+		return "insight_gpu_error_desc"
 }
 
 function insightOOM(message: string | undefined) {
@@ -237,7 +237,7 @@ const crashInsights: CrashInsight[] = [
 		}
 	),
 	new CrashInsight(
-		"insight_dxgi_title",
+		"insight_gpu_error_title",
 		(crash: ParsedCrashText) => {
 			return insightDXGI(crash.message)
 		}
@@ -318,7 +318,7 @@ const logInsights: LogInsight[] = [
 		}
 	),
 	new LogInsight(
-		"insight_dxgi_title",
+		"insight_gpu_error_title",
 		(callstack: ParsedCallstack, loadOrder: LoadOrder, logText: string) => {
 			return insightDXGI(callstack.engineError ?? "")
 		}

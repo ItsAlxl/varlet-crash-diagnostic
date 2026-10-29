@@ -12,7 +12,7 @@ const VALID_LINKS: TranslateContext = {
 	donate: "https://ko-fi.com/itsalxl",
 	dml: "https://www.nexusmods.com/warhammer40kdarktide/mods/19",
 	dmf: "https://www.nexusmods.com/warhammer40kdarktide/mods/8",
-	dxgi: "https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide",
+	gpu_error: "https://support.fatshark.se/hc/en-us/articles/7709667528349--PC-How-to-Resolve-GPU-Crashes-in-Darktide",
 	oom: "https://forums.fatsharkgames.com/t/freezing-when-games-go-on-too-long/93895",
 	pagefile: "https://forums.fatsharkgames.com/t/constant-memory-related-crashes-post-update/120127/3",
 	faq_logs: "https://dmf-docs.darkti.de/#/faqs?id=where-can-i-find-the-game-logs",
